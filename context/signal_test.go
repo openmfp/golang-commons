@@ -17,7 +17,7 @@ func TestNotifyContextSIGINT(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		err := syscall.Kill(syscall.Getpid(), syscall.SIGINT)
-		assert.NotNil(t, err)
+		assert.NoError(t, err)
 		wg.Done()
 	}()
 
@@ -39,7 +39,7 @@ func TestNotifyContextSIGTERM(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		err := syscall.Kill(syscall.Getpid(), syscall.SIGTERM)
-		assert.NotNil(t, err)
+		assert.NoError(t, err)
 		wg.Done()
 	}()
 
