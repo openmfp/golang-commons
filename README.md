@@ -13,7 +13,7 @@ This repository contains golang library packages to be reused across microservic
 Add the dependency to your Go module based project like so:
 
 ```
-go get github.com/openmfp/golang-common
+go get github.com/openmfp/golang-commons
 ```
 
 ## Releasing
