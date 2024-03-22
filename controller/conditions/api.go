@@ -2,8 +2,6 @@ package conditions
 
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-//go:generate go run -mod=mod github.com/vektra/mockery/v2 --all
-
 type ConditionsService interface {
 	ConditionsSetter
 	ConditionsGetter
