@@ -1,4 +1,4 @@
-# Golang Reuse Library for OpenMFP
+# Description
 
 This repository contains golang library packages to be reused across microservices and operators/controllers. The Scope includes, but is not limited to:
 
@@ -22,9 +22,17 @@ The release is performed automatically through a GitHub Actions Workflow.
 
 All the released versions will be available through access to GitHub (as any other Golang library).
 
+## Requirements
+
+golang-commons requires a installation of go. Checkout the [go.mod](go.mod) for the required go version.
+
 ## Contributing
 
-Please refer to the [CONTRIBUTING.md](CONTRIBUTING.md) file in this repository for instructions on how to contribute to Luigi.
+Please refer to the [CONTRIBUTING.md](CONTRIBUTING.md) file in this repository for instructions on how to contribute to openMFP.
+
+## Code of Conduct
+
+Please refer to the [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) file in this repository informations on the expected Code of Conduct for contributing to openMFP.
 
 ## Licensing
 
