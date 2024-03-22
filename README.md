@@ -1,6 +1,6 @@
 # Description
 
-This repository contains golang library packages to be reused across microservices and operators/controllers. The Scope includes, but is not limited to:
+golang-commons contains golang library packages to be reused across microservices and operators/controllers. The scope includes, but is not limited to:
 
 - JWT handling
 - Context handling
@@ -10,7 +10,7 @@ This repository contains golang library packages to be reused across microservic
 
 ## Getting started
 
-Add the dependency to your Go module based project like so:
+Add the dependency to your go module based project like so:
 
 ```
 go get github.com/openmfp/golang-commons
