@@ -24,11 +24,12 @@ import (
 )
 
 type LifecycleManager struct {
-	logger         *logger.Logger
-	client         client.Client
-	subroutines    []Subroutine
-	operatorName   string
-	controllerName string
+	logger           *logger.Logger
+	client           client.Client
+	subroutines      []Subroutine
+	operatorName     string
+	controllerName   string
+	spreadReconciles bool
 }
 
 type RuntimeObject interface {
@@ -45,11 +46,12 @@ type Subroutine interface {
 
 func NewLifecycleManager(logger *logger.Logger, operatorName string, controllerName string, client client.Client, subroutines []Subroutine) *LifecycleManager {
 	return &LifecycleManager{
-		logger:         logger,
-		client:         client,
-		subroutines:    subroutines,
-		operatorName:   operatorName,
-		controllerName: controllerName,
+		logger:           logger,
+		client:           client,
+		subroutines:      subroutines,
+		operatorName:     operatorName,
+		controllerName:   controllerName,
+		spreadReconciles: false,
 	}
 }
 
@@ -80,6 +82,19 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 
 	c := instance.DeepCopyObject()
 
+	if l.spreadReconciles {
+		if instanceStatusObj, ok := instance.(RuntimeObjectSpreadReconcileStatus); ok {
+			if instance.GetGeneration() == instanceStatusObj.GetObservedGeneration() || v1.Now().UTC().Before(instanceStatusObj.GetNextReconcileTime().Time.UTC()) {
+				return onNextReconcile(instanceStatusObj, log)
+			}
+		} else {
+			err = fmt.Errorf("spreadReconciles is enabled, but instance does not implement RuntimeObjectSpreadReconcileStatus interface. This is a programming error")
+			log.Error().Err(err).Msg("Error during reconcile")
+			sentry.CaptureError(err, sentryTags)
+			return ctrl.Result{}, err
+		}
+	}
+	// Continue with reconciliation
 	for _, subroutine := range l.subroutines {
 		subResult, err := l.reconcileSubroutine(ctx, instance, subroutine, log, sentryTags)
 		if err != nil {
@@ -88,8 +103,20 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 		if subResult.Requeue {
 			result.Requeue = subResult.Requeue
 		}
-		if subResult.RequeueAfter < result.RequeueAfter {
-			result.RequeueAfter = subResult.RequeueAfter
+		if subResult.RequeueAfter > 0 {
+			if subResult.RequeueAfter < result.RequeueAfter || result.RequeueAfter == 0 {
+				result.RequeueAfter = subResult.RequeueAfter
+			}
+		}
+	}
+
+	if !result.Requeue && result.RequeueAfter == 0 {
+		// Reconciliation was successful
+		if l.spreadReconciles {
+			if instanceStatusObj, ok := instance.(RuntimeObjectSpreadReconcileStatus); ok {
+				setNextReconcileTime(instanceStatusObj, log)
+				updateObservedGeneration(instanceStatusObj, log)
+			}
 		}
 	}
 

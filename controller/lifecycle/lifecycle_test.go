@@ -94,6 +94,142 @@ func TestLifecycle(t *testing.T) {
 		assert.Equal(t, serverObject.Status.Some, "other string")
 	})
 
+	t.Run("Lifecycle with spread reconciles", func(t *testing.T) {
+		// Arrange
+		instance := &testApiObject{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       name,
+				Namespace:  namespace,
+				Generation: 1,
+			},
+			Status: TestStatus{
+				Some:               "string",
+				ObservedGeneration: 0,
+			},
+		}
+
+		fakeClient := createFakeClient(t, instance)
+
+		manager, _ := createLifecycleManager([]Subroutine{
+			changeStatusSubroutine{
+				client: fakeClient,
+			},
+		}, fakeClient)
+		manager.WithSpreadingReconciles()
+
+		// Act
+		_, err := manager.Reconcile(ctx, request, instance)
+
+		assert.NoError(t, err)
+		assert.Equal(t, instance.Generation, instance.Status.ObservedGeneration)
+	})
+
+	t.Run("Lifecycle with spread reconciles and processing fails", func(t *testing.T) {
+		// Arrange
+		instance := &testApiObject{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       name,
+				Namespace:  namespace,
+				Generation: 1,
+			},
+			Status: TestStatus{
+				Some:               "string",
+				ObservedGeneration: 0,
+			},
+		}
+
+		fakeClient := createFakeClient(t, instance)
+
+		manager, _ := createLifecycleManager([]Subroutine{failureScenarioSubroutine{Retry: false, RequeAfter: false}}, fakeClient)
+		manager.WithSpreadingReconciles()
+
+		// Act
+		_, err := manager.Reconcile(ctx, request, instance)
+
+		assert.Error(t, err)
+		assert.Equal(t, int64(0), instance.Status.ObservedGeneration)
+	})
+
+	t.Run("Lifecycle with spread reconciles and processing needs requeue", func(t *testing.T) {
+		// Arrange
+		instance := &testApiObject{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       name,
+				Namespace:  namespace,
+				Generation: 1,
+			},
+			Status: TestStatus{
+				Some:               "string",
+				ObservedGeneration: 0,
+			},
+		}
+
+		fakeClient := createFakeClient(t, instance)
+
+		manager, _ := createLifecycleManager([]Subroutine{failureScenarioSubroutine{Retry: true, RequeAfter: false}}, fakeClient)
+		manager.WithSpreadingReconciles()
+
+		// Act
+		_, err := manager.Reconcile(ctx, request, instance)
+
+		assert.NoError(t, err)
+		assert.Equal(t, int64(0), instance.Status.ObservedGeneration)
+	})
+
+	t.Run("Lifecycle with spread reconciles and processing needs requeueAfter", func(t *testing.T) {
+		// Arrange
+		instance := &testApiObject{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       name,
+				Namespace:  namespace,
+				Generation: 1,
+			},
+			Status: TestStatus{
+				Some:               "string",
+				ObservedGeneration: 0,
+			},
+		}
+
+		fakeClient := createFakeClient(t, instance)
+
+		manager, _ := createLifecycleManager([]Subroutine{failureScenarioSubroutine{Retry: false, RequeAfter: true}}, fakeClient)
+		manager.WithSpreadingReconciles()
+
+		// Act
+		_, err := manager.Reconcile(ctx, request, instance)
+
+		assert.NoError(t, err)
+		assert.Equal(t, int64(0), instance.Status.ObservedGeneration)
+	})
+
+	t.Run("Lifecycle with spread not implementing the interface", func(t *testing.T) {
+		// Arrange
+		instance := &notImplementingSpreadReconciles{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       name,
+				Namespace:  namespace,
+				Generation: 1,
+			},
+			Status: TestStatus{
+				Some:               "string",
+				ObservedGeneration: 0,
+			},
+		}
+
+		fakeClient := createFakeClient(t, instance)
+
+		manager, _ := createLifecycleManager([]Subroutine{
+			changeStatusSubroutine{
+				client: fakeClient,
+			},
+		}, fakeClient)
+		manager.WithSpreadingReconciles()
+
+		// Act
+		_, err := manager.Reconcile(ctx, request, instance)
+
+		assert.Errorf(t, err, "SpreadReconciles is enabled, but instance does not implement RuntimeObjectSpreadReconcileStatus interface. This is a programming error.")
+	})
 }
 
 func createLifecycleManager(subroutines []Subroutine, c client.Client) (*LifecycleManager, *testlogger.TestLogger) {
@@ -107,7 +243,9 @@ func createFakeClient(t *testing.T, objects ...runtime.Object) client.WithWatch 
 	s := runtime.NewScheme()
 	sBuilder := scheme.Builder{GroupVersion: schema.GroupVersion{Group: "test.openmfp.com", Version: "v1alpha1"}}
 	object := &testApiObject{}
+	object2 := &notImplementingSpreadReconciles{}
 	sBuilder.Register(object)
+	sBuilder.Register(object2)
 	err := sBuilder.AddToScheme(s)
 	assert.NoError(t, err)
 	builder.WithScheme(s)
