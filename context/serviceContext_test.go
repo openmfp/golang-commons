@@ -70,3 +70,13 @@ func generateJWT(issuer string) (string, error) {
 
 	return tokenString, nil
 }
+
+func TestAddIsTechnicalIssuerToContext(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	ctx = AddIsTechnicalIssuerToContext(ctx)
+
+	isTechnicalIssuer := GetIsTechnicalIssuerFromContext(ctx)
+	assert.True(t, isTechnicalIssuer)
+}
