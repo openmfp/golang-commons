@@ -122,37 +122,6 @@ func callers(skip int) []uintptr {
 	return pc[:n] // return everything that we captured
 }
 
-// RecoverPanic turns a panic into an error, adjusting the stacktrace so it originates at
-// the line that caused it.
-//
-// Example:
-//
-//	func Do() (err error) {
-//	  defer func() {
-//	    errors.RecoverPanic(recover(), &err)
-//	  }()
-//	}
-func RecoverPanic(r interface{}, errPtr *error) {
-	var err error
-	if r != nil {
-		if panicErr, ok := r.(error); ok {
-			err = errors.Wrap(panicErr, "caught panic")
-		} else {
-			err = errors.New(fmt.Sprintf("caught panic: %v", r))
-		}
-	}
-
-	if err != nil {
-		// Pop twice: once for the errors package, then again for the defer function we must
-		// run this under. We want the stacktrace to originate at the source of the panic, not
-		// in the infrastructure that catches it.
-		err = PopStack(err) // errors.go
-		err = PopStack(err) // defer
-
-		*errPtr = err
-	}
-}
-
 // PopStack removes the top of the stack from an errors stack trace.
 func PopStack(err error) error {
 	if err == nil {
