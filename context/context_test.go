@@ -30,7 +30,7 @@ func TestStartContext(t *testing.T) {
 func TestDefaultTimeout(t *testing.T) {
 	t.Parallel()
 
-	timeout := TimeoutFromContext(nil)
+	timeout := TimeoutFromContext(nil) //nolint:all
 	assert.Equal(t, DefaultShutdownTimeout, timeout)
 
 	timeoutCtx := TimeoutFromContext(context.Background())
