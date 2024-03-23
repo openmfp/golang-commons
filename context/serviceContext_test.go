@@ -3,9 +3,8 @@ package context
 import (
 	"context"
 	"testing"
-	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -58,12 +57,8 @@ func TestAddWebTokenToContext(t *testing.T) {
 }
 
 func generateJWT(issuer string) (string, error) {
-	expirationTime := time.Now().Add(24 * time.Hour)
-
-	claims := &jwt.StandardClaims{
-		ExpiresAt: expirationTime.Unix(),
-		IssuedAt:  time.Now().Unix(),
-		Issuer:    issuer,
+	claims := &jwt.RegisteredClaims{
+		Issuer: issuer,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
