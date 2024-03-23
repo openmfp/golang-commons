@@ -1,4 +1,9 @@
-# Description
+# openMFP - golang-commons
+![Build Status](https://github.com/openmfp/golang-commons/actions/workflows/pipeline.yml/badge.svg)
+[![Go Report Card](https://goreportcard.com/badge/github.com/openmfp/golang-commons)](https://goreportcard.com/report/github.com/openmfp/golang-commons)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fopenmfp%2Fopenmfp.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fopenmfp%2Fgolang-commons?ref=badge_shield)
+
+## Description
 
 golang-commons contains golang library packages to be reused across microservices and operators/controllers. The scope includes, but is not limited to:
 
