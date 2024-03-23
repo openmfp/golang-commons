@@ -14,6 +14,14 @@ func TestNewErrorWithStackTrace(t *testing.T) {
 	assert.Len(t, getStackTraces(err), 1)
 }
 
+func TestNewOperatorErrorWithStackTrace(t *testing.T) {
+	err := NewOperatorError(New("oops"), false, false)
+	assert.Equal(t, "oops", err.Err().Error())
+	assert.Len(t, getStackTraces(err.Err()), 1)
+	assert.False(t, err.Retry())
+	assert.False(t, err.Sentry())
+}
+
 func TestWithStackTraceExistingError(t *testing.T) {
 	cause := errors.New("failed")
 	err := WithStack(cause)
