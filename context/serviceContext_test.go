@@ -6,7 +6,11 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
+
+	openmfpjwt "github.com/openmfp/golang-commons/jwt"
 )
+
+type astruct struct{}
 
 func TestAddSpiffeToContext(t *testing.T) {
 	t.Parallel()
@@ -19,6 +23,17 @@ func TestAddSpiffeToContext(t *testing.T) {
 	assert.Equal(t, "spiffe", spiffe)
 }
 
+func TestWrongSpiffeToContext(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	key := ContextKey(openmfpjwt.SpiffeCtxKey)
+	ctx = context.WithValue(ctx, key, astruct{})
+
+	_, err := GetSpiffeFromContext(ctx)
+	assert.Error(t, err, "someone stored a wrong value in the [spiffe] key with type [context.astruct], expected [string]")
+}
+
 func TestAddTenantToContext(t *testing.T) {
 	t.Parallel()
 
@@ -28,6 +43,17 @@ func TestAddTenantToContext(t *testing.T) {
 	tenant, err := GetTenantFromContext(ctx)
 	assert.Nil(t, err)
 	assert.Equal(t, "tenant", tenant)
+}
+
+func TestAddTenantToContextNegative(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	key := ContextKey(openmfpjwt.TenantIdCtxKey)
+	ctx = context.WithValue(ctx, key, astruct{})
+
+	_, err := GetTenantFromContext(ctx)
+	assert.Error(t, err, "someone stored a wrong value in the [tenant] key with type [context.astruct], expected [string]")
 }
 
 func TestAddAuthHeaderToContext(t *testing.T) {
@@ -54,6 +80,17 @@ func TestAddWebTokenToContext(t *testing.T) {
 	token, err := GetWebTokenFromContext(ctx)
 	assert.Nil(t, err)
 	assert.Equal(t, issuer, token.Issuer)
+}
+
+func TestAddWebTokenToContextNegative(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	key := ContextKey(openmfpjwt.WebTokenCtxKey)
+	ctx = context.WithValue(ctx, key, astruct{})
+
+	_, err := GetWebTokenFromContext(ctx)
+	assert.Error(t, err, "someone stored a wrong value in the [web_token] key with type [context.astruct], expected [jwt.WebToken]")
 }
 
 func generateJWT(issuer string) (string, error) {
