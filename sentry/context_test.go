@@ -2,7 +2,6 @@ package sentry
 
 import (
 	"context"
-	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

@@ -64,8 +64,7 @@ func TestSentryError(t *testing.T) {
 
 	t.Run("Unwrap the sentry error", func(t *testing.T) {
 		unwrapped := errors.Unwrap(sentryError)
-
-		assert.IsType(t, sentryError, unwrapped)
+		assert.IsType(t, err, unwrapped)
 	})
 
 	t.Run("Should return nil if provided error is nil", func(t *testing.T) {
