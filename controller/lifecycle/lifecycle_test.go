@@ -151,7 +151,7 @@ func TestLifecycle(t *testing.T) {
 		// Act
 		_, err := mgr.Reconcile(ctx, request, instance)
 
-		assert.NoError(t, err)
+		assert.Error(t, err)
 		assert.Equal(t, 1, len(instance.ObjectMeta.Finalizers))
 	})
 
