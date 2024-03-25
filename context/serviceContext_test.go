@@ -104,6 +104,17 @@ func TestAddWebTokenToContextNegative(t *testing.T) {
 	assert.Error(t, err, "someone stored a wrong value in the [web_token] key with type [context.astruct], expected [jwt.WebToken]")
 }
 
+func TestAddWebTokenToContextWrongToken(t *testing.T) {
+	t.Parallel()
+
+	initialContext := context.Background()
+	tokenString := "not-a-token"
+
+	ctx := AddWebTokenToContext(initialContext, tokenString)
+
+	assert.Equal(t, initialContext, ctx)
+}
+
 func generateJWT(issuer string) (string, error) {
 	claims := &jwt.RegisteredClaims{
 		Issuer: issuer,
@@ -133,8 +144,7 @@ func TestAddIsTechnicalIssuerToContextNegative(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	ctx = AddIsTechnicalIssuerToContext(ctx)
 
 	isTechnicalIssuer := GetIsTechnicalIssuerFromContext(ctx)
-	assert.True(t, isTechnicalIssuer)
+	assert.False(t, isTechnicalIssuer)
 }
