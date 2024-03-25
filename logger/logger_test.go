@@ -28,6 +28,12 @@ func TestTestLoggerInContext(t *testing.T) {
 	assert.NotNil(t, retrievedLogger)
 }
 
+func TestTestLoggerInContextFallback(t *testing.T) {
+	ctx := context.Background()
+	retrievedLogger := LoadLoggerFromContext(ctx)
+	assert.NotNil(t, retrievedLogger)
+}
+
 func TestNewFromZeroLog(t *testing.T) {
 	logger := NewFromZerolog(zerolog.New(os.Stdout))
 	assert.NotNil(t, logger)
@@ -46,4 +52,14 @@ func TestNewChildLoggerRequestLoggerFromZeroLog(t *testing.T) {
 
 	childLogger := logger.ChildLogger("child", "my-child")
 	assert.NotNil(t, childLogger)
+}
+
+func TestComponentLogger(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.NoJSON = true
+	logger, _ := New(cfg)
+	componentLogger := logger.ComponentLogger("my-component")
+	assert.NotNil(t, componentLogger)
+	componentLogger.Level(1).Debug().Msg("test")
+	componentLogger.Logr().Info("test")
 }
