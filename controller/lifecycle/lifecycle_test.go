@@ -2,6 +2,7 @@ package lifecycle
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -96,6 +97,62 @@ func TestLifecycle(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, 0, len(instance.ObjectMeta.Finalizers))
+	})
+
+	t.Run("Lifecycle with a finalizer - skip finalization if the finalizer is not in there", func(t *testing.T) {
+		// Arrange
+		now := &metav1.Time{Time: time.Now()}
+		finalizers := []string{"other-finalizer"}
+		instance := &testSupport.TestApiObject{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:              name,
+				Namespace:         namespace,
+				DeletionTimestamp: now,
+				Finalizers:        finalizers,
+			},
+		}
+
+		fakeClient := testSupport.CreateFakeClient(t, instance)
+
+		mgr, _ := createLifecycleManager([]Subroutine{
+			finalizerSubroutine{
+				client: fakeClient,
+			},
+		}, fakeClient)
+
+		// Act
+		_, err := mgr.Reconcile(ctx, request, instance)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(instance.ObjectMeta.Finalizers))
+	})
+	t.Run("Lifecycle with a finalizer - failing finalization subroutine", func(t *testing.T) {
+		// Arrange
+		now := &metav1.Time{Time: time.Now()}
+		finalizers := []string{finalizer}
+		instance := &testSupport.TestApiObject{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:              name,
+				Namespace:         namespace,
+				DeletionTimestamp: now,
+				Finalizers:        finalizers,
+			},
+		}
+
+		fakeClient := testSupport.CreateFakeClient(t, instance)
+
+		mgr, _ := createLifecycleManager([]Subroutine{
+			finalizerSubroutine{
+				client: fakeClient,
+				err:    fmt.Errorf("some error"),
+			},
+		}, fakeClient)
+
+		// Act
+		_, err := mgr.Reconcile(ctx, request, instance)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(instance.ObjectMeta.Finalizers))
 	})
 
 	t.Run("Lifecycle without changing status", func(t *testing.T) {
@@ -194,6 +251,34 @@ func TestLifecycle(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, instance.Generation, instance.Status.ObservedGeneration)
+	})
+	t.Run("Lifecycle with spread reconciles skips if the generation is the same", func(t *testing.T) {
+		// Arrange
+		instance := &implementingSpreadReconciles{
+			testSupport.TestApiObject{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       name,
+					Namespace:  namespace,
+					Generation: 1,
+				},
+				Status: testSupport.TestStatus{
+					Some:               "string",
+					ObservedGeneration: 1,
+				},
+			},
+		}
+
+		fakeClient := testSupport.CreateFakeClient(t, instance)
+
+		mgr, _ := createLifecycleManager([]Subroutine{failureScenarioSubroutine{Retry: false, RequeAfter: false}}, fakeClient)
+		mgr.WithSpreadingReconciles()
+
+		// Act
+		result, err := mgr.Reconcile(ctx, request, instance)
+
+		assert.NoError(t, err)
+		assert.Equal(t, int64(1), instance.Status.ObservedGeneration)
+		assert.GreaterOrEqual(t, 12*time.Hour, result.RequeueAfter)
 	})
 
 	t.Run("Lifecycle with spread reconciles and processing fails", func(t *testing.T) {

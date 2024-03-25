@@ -108,6 +108,25 @@ func TestWrapFrameFromOUrCurrentMethod(t *testing.T) {
 	assert.Len(t, getStackTraces(err), 1)
 }
 
+func TestEnsureStack(t *testing.T) {
+	cause := fmt.Errorf("cause")
+	err := EnsureStack(cause)
+	assert.Len(t, getStackTraces(err), 1)
+}
+
+func TestSentinel(t *testing.T) {
+	err := Sentinel("oh nose")
+	assert.Len(t, getStackTraces(err), 0)
+}
+
+func TestOperatorErrorIsNil(t *testing.T) {
+	var oe *operatorError
+
+	err := oe.Err()
+
+	assert.Nil(t, err)
+}
+
 func getStackTraces(err error) []StackTrace {
 	traces := []StackTrace{}
 	if err, ok := err.(StackTracer); ok {
