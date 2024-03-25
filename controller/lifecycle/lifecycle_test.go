@@ -48,7 +48,31 @@ func TestLifecycle(t *testing.T) {
 		assert.Contains(t, logMessages[1].Message, "instance not found")
 	})
 
-	t.Run("Lifecycle with a finalizer", func(t *testing.T) {
+	t.Run("Lifecycle with a finalizer - add finalizer", func(t *testing.T) {
+		// Arrange
+		instance := &testApiObject{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      name,
+				Namespace: namespace,
+			},
+		}
+
+		fakeClient := createFakeClient(t, instance)
+
+		manager, _ := createLifecycleManager([]Subroutine{
+			finalizerSubroutine{
+				client: fakeClient,
+			},
+		}, fakeClient)
+
+		// Act
+		_, err := manager.Reconcile(ctx, request, instance)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(instance.ObjectMeta.Finalizers))
+	})
+
+	t.Run("Lifecycle with a finalizer - finalization", func(t *testing.T) {
 		// Arrange
 		now := &metav1.Time{Time: time.Now()}
 		finalizers := []string{finalizer}
@@ -73,7 +97,7 @@ func TestLifecycle(t *testing.T) {
 		_, err := manager.Reconcile(ctx, request, instance)
 
 		assert.NoError(t, err)
-		assert.Equal(t, instance.Generation, instance.Status.ObservedGeneration)
+		assert.Equal(t, 0, len(instance.ObjectMeta.Finalizers))
 	})
 
 	t.Run("Lifecycle without changing status", func(t *testing.T) {
