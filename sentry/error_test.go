@@ -17,6 +17,26 @@ func TestSentryError(t *testing.T) {
 
 		// test if it still fulfills the error interface
 		assert.Implements(t, (*error)(nil), sentryError)
+
+	})
+
+	t.Run("Sentry AddTags", func(t *testing.T) {
+		newSentryError := SentryError(err)
+		newSentryError.AddTag("key", "value")
+		assert.Equal(t, Tags{"key": "value"}, newSentryError.GetTags())
+	})
+
+	t.Run("Sentry AddExtras", func(t *testing.T) {
+		newSentryError := SentryError(err)
+		newSentryError.AddExtra("key", "value")
+		assert.Equal(t, Extras{"key": "value"}, newSentryError.GetExtras())
+	})
+
+	t.Run("Sentry GetReason", func(t *testing.T) {
+		newSentryError := SentryError(err)
+		sErr, ok := AsSentryError(newSentryError)
+		assert.True(t, ok)
+		assert.Equal(t, "test error", sErr.GetReason().Error())
 	})
 
 	t.Run("No Sentry error", func(t *testing.T) {
@@ -40,6 +60,12 @@ func TestSentryError(t *testing.T) {
 		originalError, ok := AsSentryError(wrappedError)
 		assert.True(t, ok)
 		assert.IsType(t, &Error{}, originalError)
+	})
+
+	t.Run("Unwrap the sentry error", func(t *testing.T) {
+		unwrapped := errors.Unwrap(sentryError)
+
+		assert.IsType(t, sentryError, unwrapped)
 	})
 
 	t.Run("Should return nil if provided error is nil", func(t *testing.T) {
