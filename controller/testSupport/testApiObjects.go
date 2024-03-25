@@ -36,22 +36,3 @@ func (m *TestApiObject) DeepCopyInto(out *TestApiObject) {
 	out.TypeMeta = m.TypeMeta
 	m.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
 }
-func (m *TestApiObject) GetGeneration() int64 {
-	return m.Generation
-}
-
-func (m *TestApiObject) GetObservedGeneration() int64 {
-	return m.Status.ObservedGeneration
-}
-
-func (m *TestApiObject) SetObservedGeneration(g int64) {
-	m.Status.ObservedGeneration = g
-}
-
-func (m *TestApiObject) GetNextReconcileTime() metav1.Time {
-	return m.Status.NextReconcileTime
-}
-
-func (m *TestApiObject) SetNextReconcileTime(time metav1.Time) {
-	m.Status.NextReconcileTime = time
-}

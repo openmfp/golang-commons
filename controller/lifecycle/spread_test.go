@@ -35,7 +35,7 @@ func TestOnNextReconcile(t *testing.T) {
 	instanceStatusObj := testSupport.TestStatus{
 		NextReconcileTime: v1.NewTime(nextReconcile),
 	}
-	apiObject := &testSupport.TestApiObject{Status: instanceStatusObj}
+	apiObject := &implementingSpreadReconciles{testSupport.TestApiObject{Status: instanceStatusObj}}
 	tl := testlogger.New()
 
 	requeueAfter, err := onNextReconcile(apiObject, tl.Logger)
@@ -56,11 +56,12 @@ func TestUpdateObservedGeneration(t *testing.T) {
 	instanceStatusObj := testSupport.TestStatus{
 		ObservedGeneration: 0,
 	}
-	apiObject := &testSupport.TestApiObject{
+	apiObject := &implementingSpreadReconciles{testSupport.TestApiObject{
 		Status: instanceStatusObj,
 		ObjectMeta: v1.ObjectMeta{
 			Generation: 1,
 		},
+	},
 	}
 	tl := testlogger.New()
 	updateObservedGeneration(apiObject, tl.Logger)

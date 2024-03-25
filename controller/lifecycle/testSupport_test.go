@@ -14,6 +14,30 @@ import (
 	"github.com/openmfp/golang-commons/errors"
 )
 
+type implementingSpreadReconciles struct {
+	testSupport.TestApiObject
+}
+
+func (m *implementingSpreadReconciles) GetGeneration() int64 {
+	return m.Generation
+}
+
+func (m *implementingSpreadReconciles) GetObservedGeneration() int64 {
+	return m.Status.ObservedGeneration
+}
+
+func (m *implementingSpreadReconciles) SetObservedGeneration(g int64) {
+	m.Status.ObservedGeneration = g
+}
+
+func (m *implementingSpreadReconciles) GetNextReconcileTime() metav1.Time {
+	return m.Status.NextReconcileTime
+}
+
+func (m *implementingSpreadReconciles) SetNextReconcileTime(time metav1.Time) {
+	m.Status.NextReconcileTime = time
+}
+
 type notImplementingSpreadReconciles struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -48,8 +72,13 @@ type changeStatusSubroutine struct {
 }
 
 func (c changeStatusSubroutine) Process(_ context.Context, runtimeObj RuntimeObject) (controllerruntime.Result, errors.OperatorError) {
-	instance := runtimeObj.(*testSupport.TestApiObject)
-	instance.Status.Some = "other string"
+	instance, ok := runtimeObj.(*testSupport.TestApiObject)
+	if ok {
+		instance.Status.Some = "other string"
+	} else {
+		i, _ := runtimeObj.(*implementingSpreadReconciles)
+		i.Status.Some = "other string"
+	}
 	return controllerruntime.Result{}, nil
 }
 
