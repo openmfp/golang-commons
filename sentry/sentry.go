@@ -4,12 +4,9 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"runtime/debug"
 	"time"
 
 	"github.com/getsentry/sentry-go"
-
-	"github.com/openmfp/golang-commons/logger"
 )
 
 type (
@@ -111,19 +108,6 @@ func CaptureError(err error, tags Tags, extras ...Extras) {
 func CaptureSentryError(err error, tags Tags, extras ...Extras) {
 	if IsSentryError(err) {
 		CaptureError(err, tags, extras...)
-	}
-}
-
-// Recover can be used as deferred function to catch panics
-func Recover(log *logger.Logger) {
-	if log == nil {
-		log = logger.StdLogger
-	}
-
-	if err := recover(); err != nil {
-		log.Error().Interface("panic", err).Interface("stack", debug.Stack()).Msg("recovered panic")
-		sentry.CurrentHub().Recover(err)
-		sentry.Flush(time.Second * 5)
 	}
 }
 

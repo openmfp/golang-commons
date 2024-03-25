@@ -10,7 +10,6 @@ import (
 
 	"github.com/openmfp/golang-commons/config"
 	"github.com/openmfp/golang-commons/logger"
-	"github.com/openmfp/golang-commons/sentry"
 )
 
 // Can be used in StartContext to have a sane default timeout
@@ -27,7 +26,7 @@ func StartContext(log *logger.Logger, cfg any, timeout time.Duration) (ctx conte
 	ctx = config.SetConfigInContext(ctx, cfg)
 
 	return ctx, cancel, func() {
-		sentry.Recover(log)
+		Recover(log)
 		c()
 		<-time.After(timeout)
 	}
