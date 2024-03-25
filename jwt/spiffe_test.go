@@ -20,6 +20,17 @@ func TestSpiffe(t *testing.T) {
 		assert.Equal(t, "spiffe://example.com", *got)
 	})
 
+	t.Run("GetSpiffeUrlValueWithNil", func(t *testing.T) {
+		// Arrange
+		header := make(map[string][]string)
+
+		// Act
+		got := GetSpiffeUrlValue(header)
+
+		// Assert
+		assert.Nil(t, got)
+	})
+
 	t.Run("GetURIValueForNotMatchingRegEx", func(t *testing.T) {
 		// Act
 		got := GetURIValue("spiffe://example.com")
