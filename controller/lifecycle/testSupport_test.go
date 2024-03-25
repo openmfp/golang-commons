@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openmfp/golang-commons/controller/testSupport"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -14,40 +14,11 @@ import (
 	"github.com/openmfp/golang-commons/errors"
 )
 
-type testApiObject struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Status TestStatus `json:"status,omitempty"`
-}
-
-func (t *testApiObject) DeepCopyObject() runtime.Object {
-	if c := t.DeepCopy(); c != nil {
-		return c
-	}
-	return nil
-}
-
-func (t *testApiObject) DeepCopy() *testApiObject {
-	if t == nil {
-		return nil
-	}
-	out := new(testApiObject)
-	t.DeepCopyInto(out)
-	return out
-}
-func (m *testApiObject) DeepCopyInto(out *testApiObject) {
-	*out = *m
-	out.TypeMeta = m.TypeMeta
-	m.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
-	out.Status = m.Status
-}
-
 type notImplementingSpreadReconciles struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Status TestStatus `json:"status,omitempty"`
+	Status testSupport.TestStatus `json:"status,omitempty"`
 }
 
 func (m *notImplementingSpreadReconciles) DeepCopyObject() runtime.Object {
@@ -77,7 +48,7 @@ type changeStatusSubroutine struct {
 }
 
 func (c changeStatusSubroutine) Process(_ context.Context, runtimeObj RuntimeObject) (controllerruntime.Result, errors.OperatorError) {
-	instance := runtimeObj.(*testApiObject)
+	instance := runtimeObj.(*testSupport.TestApiObject)
 	instance.Status.Some = "other string"
 	return controllerruntime.Result{}, nil
 }
@@ -122,30 +93,4 @@ func (f failureScenarioSubroutine) Finalizers() []string {
 
 func (c failureScenarioSubroutine) GetName() string {
 	return "failureScenarioSubroutine"
-}
-
-type TestStatus struct {
-	Some               string
-	NextReconcileTime  metav1.Time
-	ObservedGeneration int64
-}
-
-func (m *testApiObject) GetGeneration() int64 {
-	return m.Generation
-}
-
-func (m *testApiObject) GetObservedGeneration() int64 {
-	return m.Status.ObservedGeneration
-}
-
-func (m *testApiObject) SetObservedGeneration(g int64) {
-	m.Status.ObservedGeneration = g
-}
-
-func (m *testApiObject) GetNextReconcileTime() v1.Time {
-	return m.Status.NextReconcileTime
-}
-
-func (m *testApiObject) SetNextReconcileTime(time v1.Time) {
-	m.Status.NextReconcileTime = time
 }

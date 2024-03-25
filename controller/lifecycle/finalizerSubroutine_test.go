@@ -3,6 +3,7 @@ package lifecycle
 import (
 	"context"
 
+	"github.com/openmfp/golang-commons/controller/testSupport"
 	"github.com/openmfp/golang-commons/errors"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -15,7 +16,7 @@ type finalizerSubroutine struct {
 }
 
 func (c finalizerSubroutine) Process(_ context.Context, runtimeObj RuntimeObject) (controllerruntime.Result, errors.OperatorError) {
-	instance := runtimeObj.(*testApiObject)
+	instance := runtimeObj.(*testSupport.TestApiObject)
 	instance.Status.Some = "other string"
 	return controllerruntime.Result{}, nil
 }

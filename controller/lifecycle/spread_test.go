@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openmfp/golang-commons/controller/testSupport"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -31,10 +32,10 @@ func TestGetNextReconcilationTime(t *testing.T) {
 
 func TestOnNextReconcile(t *testing.T) {
 	nextReconcile := time.Now().Add(10 * time.Minute)
-	instanceStatusObj := TestStatus{
+	instanceStatusObj := testSupport.TestStatus{
 		NextReconcileTime: v1.NewTime(nextReconcile),
 	}
-	apiObject := &testApiObject{Status: instanceStatusObj}
+	apiObject := &testSupport.TestApiObject{Status: instanceStatusObj}
 	tl := testlogger.New()
 
 	requeueAfter, err := onNextReconcile(apiObject, tl.Logger)
@@ -52,10 +53,10 @@ func TestOnNextReconcile(t *testing.T) {
 }
 
 func TestUpdateObservedGeneration(t *testing.T) {
-	instanceStatusObj := TestStatus{
+	instanceStatusObj := testSupport.TestStatus{
 		ObservedGeneration: 0,
 	}
-	apiObject := &testApiObject{
+	apiObject := &testSupport.TestApiObject{
 		Status: instanceStatusObj,
 		ObjectMeta: v1.ObjectMeta{
 			Generation: 1,

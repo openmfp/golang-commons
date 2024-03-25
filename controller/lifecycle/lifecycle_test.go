@@ -5,17 +5,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openmfp/golang-commons/controller/testSupport"
+	"github.com/openmfp/golang-commons/logger/testlogger"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/scheme"
-
-	"github.com/openmfp/golang-commons/logger/testlogger"
 )
 
 func TestLifecycle(t *testing.T) {
@@ -31,12 +27,12 @@ func TestLifecycle(t *testing.T) {
 
 	t.Run("Lifecycle with a not found object", func(t *testing.T) {
 		// Arrange
-		fakeClient := createFakeClient(t)
+		fakeClient := testSupport.CreateFakeClient(t, &testSupport.TestApiObject{})
 
 		manager, logger := createLifecycleManager([]Subroutine{}, fakeClient)
 
 		// Act
-		result, err := manager.Reconcile(ctx, request, &testApiObject{})
+		result, err := manager.Reconcile(ctx, request, &testSupport.TestApiObject{})
 
 		// Assert
 		assert.NoError(t, err)
@@ -50,14 +46,14 @@ func TestLifecycle(t *testing.T) {
 
 	t.Run("Lifecycle with a finalizer - add finalizer", func(t *testing.T) {
 		// Arrange
-		instance := &testApiObject{
+		instance := &testSupport.TestApiObject{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      name,
 				Namespace: namespace,
 			},
 		}
 
-		fakeClient := createFakeClient(t, instance)
+		fakeClient := testSupport.CreateFakeClient(t, instance)
 
 		manager, _ := createLifecycleManager([]Subroutine{
 			finalizerSubroutine{
@@ -76,7 +72,7 @@ func TestLifecycle(t *testing.T) {
 		// Arrange
 		now := &metav1.Time{Time: time.Now()}
 		finalizers := []string{finalizer}
-		instance := &testApiObject{
+		instance := &testSupport.TestApiObject{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:              name,
 				Namespace:         namespace,
@@ -85,7 +81,7 @@ func TestLifecycle(t *testing.T) {
 			},
 		}
 
-		fakeClient := createFakeClient(t, instance)
+		fakeClient := testSupport.CreateFakeClient(t, instance)
 
 		manager, _ := createLifecycleManager([]Subroutine{
 			finalizerSubroutine{
@@ -102,14 +98,14 @@ func TestLifecycle(t *testing.T) {
 
 	t.Run("Lifecycle without changing status", func(t *testing.T) {
 		// Arrange
-		instance := &testApiObject{
+		instance := &testSupport.TestApiObject{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      name,
 				Namespace: namespace,
 			},
-			Status: TestStatus{Some: "string"},
+			Status: testSupport.TestStatus{Some: "string"},
 		}
-		fakeClient := createFakeClient(t, instance)
+		fakeClient := testSupport.CreateFakeClient(t, instance)
 
 		manager, logger := createLifecycleManager([]Subroutine{}, fakeClient)
 
@@ -129,15 +125,15 @@ func TestLifecycle(t *testing.T) {
 
 	t.Run("Lifecycle with changing status", func(t *testing.T) {
 		// Arrange
-		instance := &testApiObject{
+		instance := &testSupport.TestApiObject{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      name,
 				Namespace: namespace,
 			},
-			Status: TestStatus{Some: "string"},
+			Status: testSupport.TestStatus{Some: "string"},
 		}
 
-		fakeClient := createFakeClient(t, instance)
+		fakeClient := testSupport.CreateFakeClient(t, instance)
 
 		manager, logger := createLifecycleManager([]Subroutine{
 			changeStatusSubroutine{
@@ -160,7 +156,7 @@ func TestLifecycle(t *testing.T) {
 		assert.Equal(t, logMessages[3].Message, "updating resource status")
 		assert.Equal(t, logMessages[4].Message, "end reconcile")
 
-		serverObject := &testApiObject{}
+		serverObject := &testSupport.TestApiObject{}
 		err = fakeClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, serverObject)
 		assert.NoError(t, err)
 		assert.Equal(t, serverObject.Status.Some, "other string")
@@ -168,19 +164,19 @@ func TestLifecycle(t *testing.T) {
 
 	t.Run("Lifecycle with spread reconciles", func(t *testing.T) {
 		// Arrange
-		instance := &testApiObject{
+		instance := &testSupport.TestApiObject{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:       name,
 				Namespace:  namespace,
 				Generation: 1,
 			},
-			Status: TestStatus{
+			Status: testSupport.TestStatus{
 				Some:               "string",
 				ObservedGeneration: 0,
 			},
 		}
 
-		fakeClient := createFakeClient(t, instance)
+		fakeClient := testSupport.CreateFakeClient(t, instance)
 
 		manager, _ := createLifecycleManager([]Subroutine{
 			changeStatusSubroutine{
@@ -198,19 +194,19 @@ func TestLifecycle(t *testing.T) {
 
 	t.Run("Lifecycle with spread reconciles and processing fails", func(t *testing.T) {
 		// Arrange
-		instance := &testApiObject{
+		instance := &testSupport.TestApiObject{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:       name,
 				Namespace:  namespace,
 				Generation: 1,
 			},
-			Status: TestStatus{
+			Status: testSupport.TestStatus{
 				Some:               "string",
 				ObservedGeneration: 0,
 			},
 		}
 
-		fakeClient := createFakeClient(t, instance)
+		fakeClient := testSupport.CreateFakeClient(t, instance)
 
 		manager, _ := createLifecycleManager([]Subroutine{failureScenarioSubroutine{Retry: false, RequeAfter: false}}, fakeClient)
 		manager.WithSpreadingReconciles()
@@ -224,19 +220,19 @@ func TestLifecycle(t *testing.T) {
 
 	t.Run("Lifecycle with spread reconciles and processing needs requeue", func(t *testing.T) {
 		// Arrange
-		instance := &testApiObject{
+		instance := &testSupport.TestApiObject{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:       name,
 				Namespace:  namespace,
 				Generation: 1,
 			},
-			Status: TestStatus{
+			Status: testSupport.TestStatus{
 				Some:               "string",
 				ObservedGeneration: 0,
 			},
 		}
 
-		fakeClient := createFakeClient(t, instance)
+		fakeClient := testSupport.CreateFakeClient(t, instance)
 
 		manager, _ := createLifecycleManager([]Subroutine{failureScenarioSubroutine{Retry: true, RequeAfter: false}}, fakeClient)
 		manager.WithSpreadingReconciles()
@@ -250,19 +246,19 @@ func TestLifecycle(t *testing.T) {
 
 	t.Run("Lifecycle with spread reconciles and processing needs requeueAfter", func(t *testing.T) {
 		// Arrange
-		instance := &testApiObject{
+		instance := &testSupport.TestApiObject{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:       name,
 				Namespace:  namespace,
 				Generation: 1,
 			},
-			Status: TestStatus{
+			Status: testSupport.TestStatus{
 				Some:               "string",
 				ObservedGeneration: 0,
 			},
 		}
 
-		fakeClient := createFakeClient(t, instance)
+		fakeClient := testSupport.CreateFakeClient(t, instance)
 
 		manager, _ := createLifecycleManager([]Subroutine{failureScenarioSubroutine{Retry: false, RequeAfter: true}}, fakeClient)
 		manager.WithSpreadingReconciles()
@@ -282,13 +278,13 @@ func TestLifecycle(t *testing.T) {
 				Namespace:  namespace,
 				Generation: 1,
 			},
-			Status: TestStatus{
+			Status: testSupport.TestStatus{
 				Some:               "string",
 				ObservedGeneration: 0,
 			},
 		}
 
-		fakeClient := createFakeClient(t, instance)
+		fakeClient := testSupport.CreateFakeClient(t, instance)
 
 		manager, _ := createLifecycleManager([]Subroutine{
 			changeStatusSubroutine{
@@ -309,19 +305,4 @@ func createLifecycleManager(subroutines []Subroutine, c client.Client) (*Lifecyc
 
 	manager := NewLifecycleManager(logger.Logger, "test-operator", "test-controller", c, subroutines)
 	return manager, logger
-}
-func createFakeClient(t *testing.T, objects ...runtime.Object) client.WithWatch {
-	builder := fake.NewClientBuilder()
-	s := runtime.NewScheme()
-	sBuilder := scheme.Builder{GroupVersion: schema.GroupVersion{Group: "test.openmfp.com", Version: "v1alpha1"}}
-	object := &testApiObject{}
-	object2 := &notImplementingSpreadReconciles{}
-	sBuilder.Register(object)
-	sBuilder.Register(object2)
-	err := sBuilder.AddToScheme(s)
-	assert.NoError(t, err)
-	builder.WithScheme(s)
-	builder.WithStatusSubresource(object)
-	builder.WithRuntimeObjects(objects...)
-	return builder.Build()
 }
