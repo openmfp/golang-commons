@@ -12,13 +12,13 @@ import (
 
 	openmfpcontext "github.com/openmfp/golang-commons/context"
 	"github.com/openmfp/golang-commons/jwt"
-	"github.com/openmfp/golang-commons/logger"
+	testlogger "github.com/openmfp/golang-commons/logger/testlogger"
 )
 
 func TestGraphQLRecover(t *testing.T) {
 	// Given
-	log, _ := logger.NewTestLogger()
-	recoverFunc := GraphQLRecover(log)
+	log := testlogger.New()
+	recoverFunc := GraphQLRecover(log.Logger)
 	ctx := context.WithValue(context.Background(), openmfpcontext.ContextKey(jwt.TenantIdCtxKey), "test")
 	ctx = graphql.WithOperationContext(ctx, &graphql.OperationContext{
 		Operation: &ast.OperationDefinition{

@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"bytes"
 	"context"
 	"io"
 	"os"
@@ -113,17 +112,6 @@ func NewRequestLoggerFromZerolog(ctx context.Context, logger zerolog.Logger) *Lo
 	}
 	logger = logger.With().Str(RequestIdLoggerKey, requestId).Logger()
 	return &Logger{logger}
-}
-
-// NewTestLogger returns a logger and a buffer containing log messages for use in tests
-// Deprecated: NewTestLogger use test_logger.New instead
-func NewTestLogger() (*Logger, *bytes.Buffer) {
-	buf := &bytes.Buffer{}
-	cfg := DefaultConfig()
-	cfg.Output = buf
-	logger, _ := New(cfg)
-
-	return logger, buf
 }
 
 func SetLoggerInContext(ctx context.Context, logger *Logger) context.Context {

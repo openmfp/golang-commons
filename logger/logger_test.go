@@ -20,7 +20,8 @@ func TestLoggerInContext(t *testing.T) {
 
 func TestTestLoggerInContext(t *testing.T) {
 	ctx := context.Background()
-	logger, _ := NewTestLogger()
+	logger, err := New(DefaultConfig())
+	assert.NoError(t, err)
 	ctx = SetLoggerInContext(ctx, logger)
 
 	retrievedLogger := LoadLoggerFromContext(ctx)

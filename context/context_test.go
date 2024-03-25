@@ -17,7 +17,8 @@ type TestConfig struct {
 func TestStartContext(t *testing.T) {
 	t.Parallel()
 
-	log, _ := logger.NewTestLogger()
+	log, err := logger.New(logger.DefaultConfig())
+	assert.NoError(t, err)
 	cfg := TestConfig{Key: "value"}
 
 	ctx, cancel, shutdown := StartContext(log, cfg, 3*time.Second)
