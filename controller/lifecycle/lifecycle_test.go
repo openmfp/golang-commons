@@ -3,6 +3,7 @@ package lifecycle
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,6 +28,53 @@ func TestLifecycle(t *testing.T) {
 		},
 	}
 	ctx := context.Background()
+
+	t.Run("Lifecycle with a not found object", func(t *testing.T) {
+		// Arrange
+		fakeClient := createFakeClient(t)
+
+		manager, logger := createLifecycleManager([]Subroutine{}, fakeClient)
+
+		// Act
+		result, err := manager.Reconcile(ctx, request, &testApiObject{})
+
+		// Assert
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		logMessages, err := logger.GetLogMessages()
+		assert.NoError(t, err)
+		assert.Equal(t, len(logMessages), 2)
+		assert.Equal(t, logMessages[0].Message, "start reconcile")
+		assert.Contains(t, logMessages[1].Message, "instance not found")
+	})
+
+	t.Run("Lifecycle with a finalizer", func(t *testing.T) {
+		// Arrange
+		now := &metav1.Time{Time: time.Now()}
+		finalizers := []string{finalizer}
+		instance := &testApiObject{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:              name,
+				Namespace:         namespace,
+				DeletionTimestamp: now,
+				Finalizers:        finalizers,
+			},
+		}
+
+		fakeClient := createFakeClient(t, instance)
+
+		manager, _ := createLifecycleManager([]Subroutine{
+			finalizerSubroutine{
+				client: fakeClient,
+			},
+		}, fakeClient)
+
+		// Act
+		_, err := manager.Reconcile(ctx, request, instance)
+
+		assert.NoError(t, err)
+		assert.Equal(t, instance.Generation, instance.Status.ObservedGeneration)
+	})
 
 	t.Run("Lifecycle without changing status", func(t *testing.T) {
 		// Arrange
