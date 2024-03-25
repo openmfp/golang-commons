@@ -8,7 +8,7 @@ import (
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 
-	"github.com/openmfp/golang-commons/jwt"
+	openmfpcontext "github.com/openmfp/golang-commons/context"
 	"github.com/openmfp/golang-commons/logger"
 )
 
@@ -24,9 +24,9 @@ func GraphQLErrorPresenter(skipTenants ...string) graphql.ErrorPresenterFunc {
 			return err
 		}
 
-		tenantID, ok := ctx.Value(jwt.TenantIdCtxKey).(string)
-		if !ok {
-			tenantID = ""
+		tenantID, ctxErr := openmfpcontext.GetTenantFromContext(ctx)
+		if ctxErr != nil {
+			captureErrorForContext(ctx, ctxErr, "")
 		}
 
 		// return without sending to Sentry if tenant should be skipped
@@ -47,9 +47,9 @@ func GraphQLRecover(log *logger.Logger) graphql.RecoverFunc {
 	return func(ctx context.Context, err interface{}) (userMessage error) {
 		log.Error().Interface("stack", debug.Stack()).Msgf("GraphQL panic: %v", err)
 
-		tenantID, ok := ctx.Value(jwt.TenantIdCtxKey).(string)
-		if !ok {
-			tenantID = ""
+		tenantID, ctxErr := openmfpcontext.GetTenantFromContext(ctx)
+		if ctxErr != nil {
+			captureErrorForContext(ctx, ctxErr, "")
 		}
 
 		captureErrorForContext(ctx, fmt.Errorf("GraphQL panic: %v", err), tenantID)
