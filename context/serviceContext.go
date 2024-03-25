@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/openmfp/golang-commons/context/keys"
 	"github.com/openmfp/golang-commons/jwt"
 	"github.com/openmfp/golang-commons/logger"
 )
@@ -75,14 +76,12 @@ func GetWebTokenFromContext(ctx context.Context) (jwt.WebToken, error) {
 	return idToken, nil
 }
 
-type isTechnicalUserKey struct{}
-
 func AddIsTechnicalIssuerToContext(ctx context.Context) context.Context {
-	return context.WithValue(ctx, isTechnicalUserKey{}, true)
+	return context.WithValue(ctx, keys.TechnicalUserCtxKey, true)
 }
 
 func GetIsTechnicalIssuerFromContext(ctx context.Context) bool {
-	isTechnicalIsser, ok := ctx.Value(isTechnicalUserKey{}).(bool)
+	isTechnicalIsser, ok := ctx.Value(keys.TechnicalUserCtxKey).(bool)
 	if !ok {
 		return false
 	}

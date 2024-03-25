@@ -60,6 +60,17 @@ func TestAddAuthHeaderToContext(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
+	key := ContextKey(openmfpjwt.AuthHeaderCtxKey)
+	ctx = context.WithValue(ctx, key, astruct{})
+
+	_, err := GetAuthHeaderFromContext(ctx)
+	assert.Error(t, err, "someone stored a wrong value in the [auth_header] key with type [context.astruct], expected [string]")
+}
+
+func TestAddAuthHeaderToContextNegative(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
 	ctx = AddAuthHeaderToContext(ctx, "auth")
 
 	auth, err := GetAuthHeaderFromContext(ctx)
@@ -109,6 +120,16 @@ func generateJWT(issuer string) (string, error) {
 }
 
 func TestAddIsTechnicalIssuerToContext(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	ctx = AddIsTechnicalIssuerToContext(ctx)
+
+	isTechnicalIssuer := GetIsTechnicalIssuerFromContext(ctx)
+	assert.True(t, isTechnicalIssuer)
+}
+
+func TestAddIsTechnicalIssuerToContextNegative(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()

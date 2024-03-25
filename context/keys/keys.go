@@ -8,4 +8,5 @@ const (
 	ConfigCtxKey         = ContextKey("config")
 	SentryTagsCtxKey     = ContextKey("sentryTags")
 	TracingHeadersCtxKey = ContextKey("tracingHeaders")
+	TechnicalUserCtxKey  = ContextKey("technicalUser")
 )
