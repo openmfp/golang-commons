@@ -12,65 +12,57 @@ import (
 type ContextKey string
 
 func AddSpiffeToContext(ctx context.Context, spiffe string) context.Context {
-	key := ContextKey(jwt.SpiffeCtxKey)
-	return context.WithValue(ctx, key, spiffe)
+	return context.WithValue(ctx, keys.SpiffeCtxKey, spiffe)
 }
 
 func GetSpiffeFromContext(ctx context.Context) (string, error) {
-	key := ContextKey(jwt.SpiffeCtxKey)
-	spiffe, ok := ctx.Value(key).(string)
+	spiffe, ok := ctx.Value(keys.SpiffeCtxKey).(string)
 	if !ok {
-		return spiffe, fmt.Errorf("someone stored a wrong value in the [%s] key with type [%T], expected [string]", jwt.SpiffeCtxKey, ctx.Value(key))
+		return spiffe, fmt.Errorf("someone stored a wrong value in the [%s] key with type [%T], expected [string]", jwt.SpiffeCtxKey, ctx.Value(keys.SpiffeCtxKey))
 	}
 
 	return spiffe, nil
 }
 
 func AddTenantToContext(ctx context.Context, tenantId string) context.Context {
-	key := ContextKey(jwt.TenantIdCtxKey)
-	return context.WithValue(ctx, key, tenantId)
+	return context.WithValue(ctx, keys.TenantIdCtxKey, tenantId)
 }
 
 func GetTenantFromContext(ctx context.Context) (string, error) {
-	key := ContextKey(jwt.TenantIdCtxKey)
-	tenantId, ok := ctx.Value(key).(string)
+	tenantId, ok := ctx.Value(keys.TenantIdCtxKey).(string)
 	if !ok {
-		return tenantId, fmt.Errorf("someone stored a wrong value in the [%s] key with type [%T], expected [string]", jwt.TenantIdCtxKey, ctx.Value(key))
+		return tenantId, fmt.Errorf("someone stored a wrong value in the [%s] key with type [%T], expected [string]", jwt.TenantIdCtxKey, ctx.Value(keys.TenantIdCtxKey))
 	}
 
 	return tenantId, nil
 }
 
 func AddAuthHeaderToContext(ctx context.Context, headerValue string) context.Context {
-	key := ContextKey(jwt.AuthHeaderCtxKey)
-	return context.WithValue(ctx, key, headerValue)
+	return context.WithValue(ctx, keys.AuthHeaderCtxKey, headerValue)
 }
 
 func GetAuthHeaderFromContext(ctx context.Context) (string, error) {
-	key := ContextKey(jwt.AuthHeaderCtxKey)
-	auth, ok := ctx.Value(key).(string)
+	auth, ok := ctx.Value(keys.AuthHeaderCtxKey).(string)
 	if !ok {
-		return auth, fmt.Errorf("someone stored a wrong value in the [%s] key with type [%T], expected [string]", jwt.AuthHeaderCtxKey, ctx.Value(key))
+		return auth, fmt.Errorf("someone stored a wrong value in the [%s] key with type [%T], expected [string]", jwt.AuthHeaderCtxKey, ctx.Value(keys.AuthHeaderCtxKey))
 	}
 
 	return auth, nil
 }
 
 func AddWebTokenToContext(ctx context.Context, idToken string) context.Context {
-	key := ContextKey(jwt.WebTokenCtxKey)
 	token, err := jwt.New(idToken)
 	if err != nil {
 		logger.StdLogger.Error().Err(err).Msg("cannot add given id_token to context")
 		return ctx
 	}
-	return context.WithValue(ctx, key, token)
+	return context.WithValue(ctx, keys.WebTokenCtxKey, token)
 }
 
 func GetWebTokenFromContext(ctx context.Context) (jwt.WebToken, error) {
-	key := ContextKey(jwt.WebTokenCtxKey)
-	idToken, ok := ctx.Value(key).(jwt.WebToken)
+	idToken, ok := ctx.Value(keys.WebTokenCtxKey).(jwt.WebToken)
 	if !ok {
-		return idToken, fmt.Errorf("someone stored a wrong value in the [%s] key with type [%T], expected [jwt.WebToken]", jwt.WebTokenCtxKey, ctx.Value(key))
+		return idToken, fmt.Errorf("someone stored a wrong value in the [%s] key with type [%T], expected [jwt.WebToken]", jwt.WebTokenCtxKey, ctx.Value(keys.WebTokenCtxKey))
 	}
 
 	return idToken, nil
