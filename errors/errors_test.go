@@ -127,6 +127,11 @@ func TestOperatorErrorIsNil(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestPopStackNil(t *testing.T) {
+	err := PopStack(nil)
+	assert.Nil(t, err)
+}
+
 func getStackTraces(err error) []StackTrace {
 	traces := []StackTrace{}
 	if err, ok := err.(StackTracer); ok {

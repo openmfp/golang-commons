@@ -20,6 +20,12 @@ func TestCaptureError(t *testing.T) {
 	})
 }
 
+func TestCaptureErrorNil(t *testing.T) {
+	assert.NotPanics(t, func() {
+		CaptureError(nil, nil)
+	})
+}
+
 func TestCaptureSentryError(t *testing.T) {
 
 	assert.NotPanics(t, func() {
