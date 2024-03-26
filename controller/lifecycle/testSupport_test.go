@@ -2,7 +2,10 @@ package lifecycle
 
 import (
 	"context"
+	"fmt"
+	"time"
 
+	"github.com/openmfp/golang-commons/controller/testSupport"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	controllerruntime "sigs.k8s.io/controller-runtime"
@@ -11,33 +14,57 @@ import (
 	"github.com/openmfp/golang-commons/errors"
 )
 
-type testApiObject struct {
+type implementingSpreadReconciles struct {
+	testSupport.TestApiObject
+}
+
+func (m *implementingSpreadReconciles) GetGeneration() int64 {
+	return m.Generation
+}
+
+func (m *implementingSpreadReconciles) GetObservedGeneration() int64 {
+	return m.Status.ObservedGeneration
+}
+
+func (m *implementingSpreadReconciles) SetObservedGeneration(g int64) {
+	m.Status.ObservedGeneration = g
+}
+
+func (m *implementingSpreadReconciles) GetNextReconcileTime() metav1.Time {
+	return m.Status.NextReconcileTime
+}
+
+func (m *implementingSpreadReconciles) SetNextReconcileTime(time metav1.Time) {
+	m.Status.NextReconcileTime = time
+}
+
+type notImplementingSpreadReconciles struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Status TestStatus `json:"status,omitempty"`
+	Status testSupport.TestStatus `json:"status,omitempty"`
 }
 
-func (t *testApiObject) DeepCopyObject() runtime.Object {
-	if c := t.DeepCopy(); c != nil {
+func (m *notImplementingSpreadReconciles) DeepCopyObject() runtime.Object {
+	if c := m.DeepCopy(); c != nil {
 		return c
 	}
 	return nil
 }
 
-func (t *testApiObject) DeepCopy() *testApiObject {
-	if t == nil {
+func (m *notImplementingSpreadReconciles) DeepCopy() *notImplementingSpreadReconciles {
+	if m == nil {
 		return nil
 	}
-	out := new(testApiObject)
-	t.DeepCopyInto(out)
+	out := new(notImplementingSpreadReconciles)
+	m.DeepCopyInto(out)
 	return out
 }
-func (t *testApiObject) DeepCopyInto(out *testApiObject) {
-	*out = *t
-	out.TypeMeta = t.TypeMeta
-	t.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
-	out.Status = t.Status
+func (m *notImplementingSpreadReconciles) DeepCopyInto(out *notImplementingSpreadReconciles) {
+	*out = *m
+	out.TypeMeta = m.TypeMeta
+	m.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	out.Status = m.Status
 }
 
 type changeStatusSubroutine struct {
@@ -45,8 +72,13 @@ type changeStatusSubroutine struct {
 }
 
 func (c changeStatusSubroutine) Process(_ context.Context, runtimeObj RuntimeObject) (controllerruntime.Result, errors.OperatorError) {
-	instance := runtimeObj.(*testApiObject)
-	instance.Status.Some = "other string"
+	instance, ok := runtimeObj.(*testSupport.TestApiObject)
+	if ok {
+		instance.Status.Some = "other string"
+	} else {
+		i, _ := runtimeObj.(*implementingSpreadReconciles)
+		i.Status.Some = "other string"
+	}
 	return controllerruntime.Result{}, nil
 }
 
@@ -63,6 +95,31 @@ func (c changeStatusSubroutine) Finalizers() []string {
 	return []string{}
 }
 
-type TestStatus struct {
-	Some string
+type failureScenarioSubroutine struct {
+	Retry      bool
+	RequeAfter bool
+}
+
+func (f failureScenarioSubroutine) Process(_ context.Context, _ RuntimeObject) (controllerruntime.Result, errors.OperatorError) {
+	if f.Retry {
+		return controllerruntime.Result{Requeue: true}, nil
+	}
+
+	if f.RequeAfter {
+		return controllerruntime.Result{RequeueAfter: 10 * time.Second}, nil
+	}
+
+	return controllerruntime.Result{}, errors.NewOperatorError(fmt.Errorf("failureScenarioSubroutine"), true, false)
+}
+
+func (f failureScenarioSubroutine) Finalize(_ context.Context, _ RuntimeObject) (controllerruntime.Result, errors.OperatorError) {
+	return controllerruntime.Result{}, nil
+}
+
+func (f failureScenarioSubroutine) Finalizers() []string {
+	return []string{}
+}
+
+func (c failureScenarioSubroutine) GetName() string {
+	return "failureScenarioSubroutine"
 }

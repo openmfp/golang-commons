@@ -14,6 +14,14 @@ func TestNewErrorWithStackTrace(t *testing.T) {
 	assert.Len(t, getStackTraces(err), 1)
 }
 
+func TestNewOperatorErrorWithStackTrace(t *testing.T) {
+	err := NewOperatorError(New("oops"), false, false)
+	assert.Equal(t, "oops", err.Err().Error())
+	assert.Len(t, getStackTraces(err.Err()), 1)
+	assert.False(t, err.Retry())
+	assert.False(t, err.Sentry())
+}
+
 func TestWithStackTraceExistingError(t *testing.T) {
 	cause := errors.New("failed")
 	err := WithStack(cause)
@@ -98,6 +106,25 @@ func TestWrapFrameFromOUrCurrentMethod(t *testing.T) {
 	err := Wrap(New("related"), "helpful description")
 	assert.Equal(t, "helpful description: related", err.Error())
 	assert.Len(t, getStackTraces(err), 1)
+}
+
+func TestEnsureStack(t *testing.T) {
+	cause := fmt.Errorf("cause")
+	err := EnsureStack(cause)
+	assert.Len(t, getStackTraces(err), 1)
+}
+
+func TestSentinel(t *testing.T) {
+	err := Sentinel("oh nose")
+	assert.Len(t, getStackTraces(err), 0)
+}
+
+func TestOperatorErrorIsNil(t *testing.T) {
+	var oe *operatorError
+
+	err := oe.Err()
+
+	assert.Nil(t, err)
 }
 
 func getStackTraces(err error) []StackTrace {

@@ -25,3 +25,15 @@ func TestParseAudiences(t *testing.T) {
 	assert.Contains(t, parsedAudiences, "audience2")
 	assert.NotContains(t, parsedAudiences, 1812)
 }
+func TestParseAudiencesString(t *testing.T) {
+	token := rawWebToken{
+		rawClaims: rawClaims{
+			RawAudiences: "audience1",
+		},
+	}
+
+	parsedAudiences := token.getAudiences()
+
+	assert.Contains(t, parsedAudiences, "audience1")
+	assert.Equal(t, len(parsedAudiences), 1)
+}

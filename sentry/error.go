@@ -57,7 +57,7 @@ func (e Error) GetExtras() Extras {
 }
 
 func (e *Error) Unwrap() error {
-	return errors.Unwrap(e.error)
+	return e.error
 }
 
 // IsSentryError checks if a given error is of Error type and therefor should be sent to Sentry
