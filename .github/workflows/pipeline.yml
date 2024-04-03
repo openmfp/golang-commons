@@ -6,9 +6,6 @@ jobs:
     concurrency:
       group: ${{ github.ref }}
       cancel-in-progress: true
-    permissions:
-      contents: write
-      pull-requests: write
     uses: openmfp/gha/.github/workflows/pipeline-golang-module.yml@main
     secrets: inherit
 
