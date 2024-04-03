@@ -9,7 +9,7 @@ on:
 jobs:
   license:
     concurrency:
-      group: ${{ github.ref }}
+      group: license-${{ github.ref }}
       cancel-in-progress: true
     uses: openmfp/gha/.github/workflows/job-license-metadata.yml@feat/license-generation
     secrets: inherit
