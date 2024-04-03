@@ -2,7 +2,7 @@ name: "Update License Metadata"
 
 on:
   push:
-    # branches: [ "main" ]
+    branches: [ "main" ]
   schedule:
     - cron: '32 16 * * 0'
 
@@ -14,5 +14,5 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    uses: openmfp/gha/.github/workflows/job-license-metadata.yml@feat/license-generation
+    uses: openmfp/gha/.github/workflows/job-license-metadata.yml@main
     secrets: inherit
