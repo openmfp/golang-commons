@@ -1,0 +1,9 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: golang-commons
+Upstream-Contact: 
+Source: https://github.com/openmfp/golang-commons
+
+Files: *
+Copyright: 2024 SAP SE or an SAP affiliate company and openMFP contributors and golang-commons contributors.
+License: Apache-2.0
+
