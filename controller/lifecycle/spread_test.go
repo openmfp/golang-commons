@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openmfp/golang-commons/controller/testSupport"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/openmfp/golang-commons/controller/testSupport"
 	"github.com/openmfp/golang-commons/logger/testlogger"
 )
 
@@ -78,15 +78,10 @@ func TestRemoveRefreshLabel(t *testing.T) {
 			Labels: map[string]string{SpreadReconcileRefreshLabel: ""},
 		},
 	}
-	tl := testlogger.New()
-	removeRefreshLabelIfExists(apiObject, tl.Logger)
+	removeRefreshLabelIfExists(apiObject)
 
 	_, ok := apiObject.GetLabels()[SpreadReconcileRefreshLabel]
-
-	messages, err := tl.GetLogMessages()
-	assert.NoError(t, err)
 	assert.False(t, ok)
-	assert.Contains(t, messages[0].Message, "Removing refresh label")
 }
 
 func TestRemoveRefreshLabelFilledWithValue(t *testing.T) {
@@ -95,28 +90,20 @@ func TestRemoveRefreshLabelFilledWithValue(t *testing.T) {
 			Labels: map[string]string{SpreadReconcileRefreshLabel: "true"},
 		},
 	}
-	tl := testlogger.New()
-	removeRefreshLabelIfExists(apiObject, tl.Logger)
+	removeRefreshLabelIfExists(apiObject)
 
 	_, ok := apiObject.GetLabels()[SpreadReconcileRefreshLabel]
 
-	messages, err := tl.GetLogMessages()
-	assert.NoError(t, err)
 	assert.False(t, ok)
-	assert.Contains(t, messages[0].Message, "Removing refresh label")
 }
 
 func TestRemoveRefreshLabelNoLabels(t *testing.T) {
 	apiObject := &testSupport.TestApiObject{
 		ObjectMeta: v1.ObjectMeta{},
 	}
-	tl := testlogger.New()
-	removeRefreshLabelIfExists(apiObject, tl.Logger)
+	removeRefreshLabelIfExists(apiObject)
 
 	_, ok := apiObject.GetLabels()[SpreadReconcileRefreshLabel]
 
-	messages, err := tl.GetLogMessages()
-	assert.NoError(t, err)
 	assert.False(t, ok)
-	assert.Contains(t, messages[0].Message, "Refresh label not found")
 }

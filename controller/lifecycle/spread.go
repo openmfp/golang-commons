@@ -10,7 +10,7 @@ import (
 	"github.com/openmfp/golang-commons/logger"
 )
 
-const SpreadReconcileRefreshLabel = "dxp.sap.com/refesh-reconcile"
+const SpreadReconcileRefreshLabel = "openmfp.io/refesh-reconcile"
 
 // WithSpreadingReconciles sets the LifecycleManager to spread out the reconciles
 func (l *LifecycleManager) WithSpreadingReconciles() *LifecycleManager {
@@ -50,16 +50,8 @@ func updateObservedGeneration(instanceStatusObj RuntimeObjectSpreadReconcileStat
 	logger.Debug().Int64("observed-generation", instanceStatusObj.GetObservedGeneration()).Int64("generation", instanceStatusObj.GetGeneration()).Msg("Updating observed generation")
 	instanceStatusObj.SetObservedGeneration(instanceStatusObj.GetGeneration())
 }
-func removeRefreshLabelIfExists(instance RuntimeObject, logger *logger.Logger) bool {
-	labels := instance.GetLabels()
-	_, ok := labels[SpreadReconcileRefreshLabel]
-
-	if ok {
-		logger.Info().Msg("Removing refresh label")
-		delete(labels, SpreadReconcileRefreshLabel)
-		instance.SetLabels(labels)
-	} else {
-		logger.Info().Msg("Refresh label not found")
-	}
-	return ok
+func removeRefreshLabelIfExists(instance RuntimeObject) bool {
+	keyCount := len(instance.GetLabels())
+	delete(instance.GetLabels(), SpreadReconcileRefreshLabel)
+	return keyCount != len(instance.GetLabels())
 }
