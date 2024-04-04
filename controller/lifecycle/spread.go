@@ -10,7 +10,7 @@ import (
 	"github.com/openmfp/golang-commons/logger"
 )
 
-const SpreadReconcileRefreshLabel = "openmfp.io/refesh-reconcile"
+const SpreadReconcileRefreshLabel = "openmfp.io/refresh-reconcile"
 
 // WithSpreadingReconciles sets the LifecycleManager to spread out the reconciles
 func (l *LifecycleManager) WithSpreadingReconciles() *LifecycleManager {
@@ -34,7 +34,7 @@ func getNextReconcileTime() time.Duration {
 // onNextReconcile is a helper function to set the next reconcile time and return the requeueAfter time
 func onNextReconcile(instanceStatusObj RuntimeObjectSpreadReconcileStatus, logger *logger.Logger) (ctrl.Result, error) {
 	requeueAfter := time.Until(instanceStatusObj.GetNextReconcileTime().Time.UTC())
-	logger.Debug().Int64("minutes-till-next-execution", int64(requeueAfter.Minutes())).Msg("Completed reconiliation, no processing needed")
+	logger.Debug().Int64("minutes-till-next-execution", int64(requeueAfter.Minutes())).Msg("Completed reconciliation, no processing needed")
 	return ctrl.Result{RequeueAfter: requeueAfter}, nil
 }
 
