@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"slices"
 
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel"
+	"golang.org/x/exp/maps"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -74,17 +76,15 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 			log.Info().Msg("instance not found. It was likely deleted")
 			return ctrl.Result{}, nil
 		}
-
-		log.Error().Err(err).Msg("failed to retrieve instance")
-		sentry.CaptureError(err, sentryTags)
-		return ctrl.Result{}, err
+		return l.handleClientError("failed to retrieve instance", log, err, sentryTags)
 	}
 
 	c := instance.DeepCopyObject()
 
 	if l.spreadReconciles {
 		if instanceStatusObj, ok := instance.(RuntimeObjectSpreadReconcileStatus); ok {
-			if instance.GetGeneration() == instanceStatusObj.GetObservedGeneration() || v1.Now().UTC().Before(instanceStatusObj.GetNextReconcileTime().Time.UTC()) {
+			if !slices.Contains(maps.Keys(instance.GetLabels()), SpreadReconcileRefreshLabel) &&
+				(instance.GetGeneration() == instanceStatusObj.GetObservedGeneration() || v1.Now().UTC().Before(instanceStatusObj.GetNextReconcileTime().Time.UTC())) {
 				return onNextReconcile(instanceStatusObj, log)
 			}
 		} else {
@@ -137,8 +137,24 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 		log.Info().Msg("skipping status update, since they are equal")
 	}
 
+	if l.spreadReconciles {
+		removed := removeRefreshLabelIfExists(instance, log)
+		if removed {
+			updateErr := l.client.Update(ctx, instance)
+			if updateErr != nil {
+				return l.handleClientError("failed to update instance", log, err, sentryTags)
+			}
+		}
+	}
+
 	log.Info().Msg("end reconcile")
 	return result, nil
+}
+
+func (l *LifecycleManager) handleClientError(msg string, log *logger.Logger, err error, sentryTags sentry.Tags) (ctrl.Result, error) {
+	log.Error().Err(err).Msg(msg)
+	sentry.CaptureError(err, sentryTags)
+	return ctrl.Result{}, err
 }
 
 func containsFinalizer(o client.Object, subroutineFinalizers []string) bool {

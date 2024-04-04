@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmfp/golang-commons/controller/testSupport"
 	"github.com/openmfp/golang-commons/logger/testlogger"
+	"github.com/openmfp/golang-commons/sentry"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -412,6 +413,61 @@ func TestLifecycle(t *testing.T) {
 
 		// Assert
 		assert.NoError(t, err)
+	})
+
+	t.Run("Lifecycle with spread reconciles and refresh label", func(t *testing.T) {
+		// Arrange
+		instance := &implementingSpreadReconciles{
+			testSupport.TestApiObject{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       name,
+					Namespace:  namespace,
+					Generation: 1,
+					Labels:     map[string]string{SpreadReconcileRefreshLabel: "true"},
+				},
+				Status: testSupport.TestStatus{
+					Some:               "string",
+					ObservedGeneration: 1,
+				},
+			},
+		}
+
+		fakeClient := testSupport.CreateFakeClient(t, instance)
+
+		lm, _ := createLifecycleManager([]Subroutine{
+			changeStatusSubroutine{
+				client: fakeClient,
+			},
+		}, fakeClient)
+		lm.WithSpreadingReconciles()
+
+		// Act
+		_, err := lm.Reconcile(ctx, request, instance)
+
+		assert.NoError(t, err)
+		assert.Equal(t, int64(1), instance.Status.ObservedGeneration)
+
+		serverObject := &implementingSpreadReconciles{}
+		err = fakeClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, serverObject)
+		assert.NoError(t, err)
+		assert.Equal(t, serverObject.Status.Some, "other string")
+		_, ok := serverObject.Labels[SpreadReconcileRefreshLabel]
+		assert.False(t, ok)
+	})
+
+	t.Run("Should handle a client error", func(t *testing.T) {
+		// Arrange
+		lm, log := createLifecycleManager([]Subroutine{}, nil)
+
+		testErr := fmt.Errorf("test error")
+
+		// Act
+		result, err := lm.handleClientError("test", log.Logger, testErr, sentry.Tags{})
+
+		// Assert
+		assert.Error(t, err)
+		assert.Equal(t, testErr, err)
+		assert.Equal(t, controllerruntime.Result{}, result)
 	})
 }
 

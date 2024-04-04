@@ -71,3 +71,52 @@ func TestUpdateObservedGeneration(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Contains(t, messages[0].Message, "Updating observed generation")
 }
+
+func TestRemoveRefreshLabel(t *testing.T) {
+	apiObject := &testSupport.TestApiObject{
+		ObjectMeta: v1.ObjectMeta{
+			Labels: map[string]string{SpreadReconcileRefreshLabel: ""},
+		},
+	}
+	tl := testlogger.New()
+	removeRefreshLabelIfExists(apiObject, tl.Logger)
+
+	_, ok := apiObject.GetLabels()[SpreadReconcileRefreshLabel]
+
+	messages, err := tl.GetLogMessages()
+	assert.NoError(t, err)
+	assert.False(t, ok)
+	assert.Contains(t, messages[0].Message, "Removing refresh label")
+}
+
+func TestRemoveRefreshLabelFilledWithValue(t *testing.T) {
+	apiObject := &testSupport.TestApiObject{
+		ObjectMeta: v1.ObjectMeta{
+			Labels: map[string]string{SpreadReconcileRefreshLabel: "true"},
+		},
+	}
+	tl := testlogger.New()
+	removeRefreshLabelIfExists(apiObject, tl.Logger)
+
+	_, ok := apiObject.GetLabels()[SpreadReconcileRefreshLabel]
+
+	messages, err := tl.GetLogMessages()
+	assert.NoError(t, err)
+	assert.False(t, ok)
+	assert.Contains(t, messages[0].Message, "Removing refresh label")
+}
+
+func TestRemoveRefreshLabelNoLabels(t *testing.T) {
+	apiObject := &testSupport.TestApiObject{
+		ObjectMeta: v1.ObjectMeta{},
+	}
+	tl := testlogger.New()
+	removeRefreshLabelIfExists(apiObject, tl.Logger)
+
+	_, ok := apiObject.GetLabels()[SpreadReconcileRefreshLabel]
+
+	messages, err := tl.GetLogMessages()
+	assert.NoError(t, err)
+	assert.False(t, ok)
+	assert.Contains(t, messages[0].Message, "Refresh label not found")
+}
