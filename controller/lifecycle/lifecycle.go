@@ -138,7 +138,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 	}
 
 	if l.spreadReconciles {
-		removed := removeRefreshLabelIfExists(instance, log)
+		removed := removeRefreshLabelIfExists(instance)
 		if removed {
 			updateErr := l.client.Update(ctx, instance)
 			if updateErr != nil {
