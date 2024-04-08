@@ -148,3 +148,22 @@ func TestAddIsTechnicalIssuerToContextNegative(t *testing.T) {
 	isTechnicalIssuer := GetIsTechnicalIssuerFromContext(ctx)
 	assert.False(t, isTechnicalIssuer)
 }
+
+func TestHasTenantInContext(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	ctx = AddTenantToContext(ctx, "tenant")
+
+	hasTenant := HasTenantInContext(ctx)
+	assert.True(t, hasTenant)
+}
+
+func TestHasTenantInContextNegative(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	hasTenant := HasTenantInContext(ctx)
+	assert.False(t, hasTenant)
+}

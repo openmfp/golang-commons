@@ -37,6 +37,11 @@ func GetTenantFromContext(ctx context.Context) (string, error) {
 	return tenantId, nil
 }
 
+func HasTenantInContext(ctx context.Context) bool {
+	_, ok := ctx.Value(keys.TenantIdCtxKey).(string)
+	return ok
+}
+
 func AddAuthHeaderToContext(ctx context.Context, headerValue string) context.Context {
 	return context.WithValue(ctx, keys.AuthHeaderCtxKey, headerValue)
 }

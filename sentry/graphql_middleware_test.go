@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/99designs/gqlgen/graphql"
+	"github.com/openmfp/golang-commons/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/vektah/gqlparser/v2/ast"
 	"github.com/vektah/gqlparser/v2/gqlerror"
@@ -48,7 +49,7 @@ func TestGraphQLErrorPresenter(t *testing.T) {
 	//Given
 	presenter := GraphQLErrorPresenter()
 	testError := errors.New("test error")
-	ctx := context.WithValue(context.Background(), openmfpcontext.ContextKey(jwt.TenantIdCtxKey), "test")
+	ctx := openmfpcontext.AddTenantToContext(context.Background(), "test")
 
 	//When
 	err := presenter(ctx, testError)
@@ -56,6 +57,19 @@ func TestGraphQLErrorPresenter(t *testing.T) {
 	//Then
 	expectedErr := gqlerror.Wrap(testError)
 	assert.Equal(t, expectedErr, err)
+}
+
+func TestGraphQLErrorPresenterNilError(t *testing.T) {
+	//Given
+	presenter := GraphQLErrorPresenter()
+	var testError error
+	ctx := context.Background()
+
+	//When
+	err := presenter(ctx, testError)
+
+	//Then
+	assert.Nil(t, err)
 }
 
 func TestGraphQLErrorPresenterWithoutTenantContext(t *testing.T) {
@@ -75,7 +89,9 @@ func TestGraphQLErrorPresenterWithSkipTenants(t *testing.T) {
 	//Given
 	presenter := GraphQLErrorPresenter("test")
 	testError := SentryError(errors.New("test error"))
-	ctx := context.WithValue(context.Background(), openmfpcontext.ContextKey(jwt.TenantIdCtxKey), "test")
+	tl := testlogger.New()
+	ctx := openmfpcontext.AddTenantToContext(context.Background(), "test")
+	ctx = logger.SetLoggerInContext(ctx, tl.Logger)
 
 	//When
 	err := presenter(ctx, testError)
@@ -84,4 +100,8 @@ func TestGraphQLErrorPresenterWithSkipTenants(t *testing.T) {
 	expectedErr := gqlerror.Wrap(testError)
 	assert.Equal(t, expectedErr, err)
 
+	messages, err2 := tl.GetLogMessages()
+	assert.NoError(t, err2)
+	assert.Len(t, messages, 1)
+	assert.Equal(t, "Error not sent to Sentry for skipped tenant", messages[0].Message)
 }

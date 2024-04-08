@@ -21,17 +21,22 @@ func GraphQLErrorPresenter(skipTenants ...string) graphql.ErrorPresenterFunc {
 		}
 
 		if !IsSentryError(e) {
+			l := logger.LoadLoggerFromContext(ctx)
+			l.Debug().Err(err).Msg("Error not sent to Sentry")
 			return err
 		}
 
-		tenantID, ctxErr := openmfpcontext.GetTenantFromContext(ctx)
-		if ctxErr != nil {
-			captureErrorForContext(ctx, ctxErr, "")
+		if !openmfpcontext.HasTenantInContext(ctx) {
+			captureErrorForContext(ctx, err, "")
 		}
+
+		tenantID, _ := openmfpcontext.GetTenantFromContext(ctx)
 
 		// return without sending to Sentry if tenant should be skipped
 		for _, tenant := range skipTenants {
 			if tenant == tenantID {
+				l := logger.LoadLoggerFromContext(ctx)
+				l.Debug().Err(err).Msg("Error not sent to Sentry for skipped tenant")
 				return err
 			}
 		}
