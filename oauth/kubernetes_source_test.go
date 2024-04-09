@@ -69,7 +69,8 @@ func TestKubernetesTokenSourceInvalid(t *testing.T) {
 		fmt.Sprintf("/api/v1/namespaces/%s/serviceaccounts/%s/token", serviceAccountName.Namespace, serviceAccountName.Name),
 		func(w http.ResponseWriter, r *http.Request) {
 
-			w.Write([]byte("some invalid json"))
+			_, err := w.Write([]byte("some invalid json"))
+			assert.NoError(t, err)
 		},
 	)
 	srv := httptest.NewServer(mux)
