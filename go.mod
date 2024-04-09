@@ -14,6 +14,8 @@ require (
 	github.com/stretchr/testify v1.9.0
 	github.com/vektah/gqlparser/v2 v2.5.11
 	go.opentelemetry.io/otel v1.24.0
+	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a
+	golang.org/x/oauth2 v0.17.0
 	gopkg.in/square/go-jose.v2 v2.6.0
 	k8s.io/api v0.29.2
 	k8s.io/apimachinery v0.29.2
@@ -58,9 +60,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.24.0 // indirect
 	go.opentelemetry.io/otel/trace v1.24.0 // indirect
 	golang.org/x/crypto v0.21.0 // indirect
-	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a // indirect
 	golang.org/x/net v0.22.0 // indirect
-	golang.org/x/oauth2 v0.17.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/term v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
