@@ -60,22 +60,31 @@ func TestAddAuthHeaderToContext(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	key := ContextKey(openmfpjwt.AuthHeaderCtxKey)
-	ctx = context.WithValue(ctx, key, astruct{})
+	ctx = AddAuthHeaderToContext(ctx, "auth")
 
-	_, err := GetAuthHeaderFromContext(ctx)
-	assert.Error(t, err, "someone stored a wrong value in the [auth_header] key with type [context.astruct], expected [string]")
+	auth, err := GetAuthHeaderFromContext(ctx)
+	assert.Nil(t, err)
+	assert.Equal(t, "auth", auth)
 }
 
 func TestAddAuthHeaderToContextNegative(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	ctx = AddAuthHeaderToContext(ctx, "auth")
+	key := ContextKey(openmfpjwt.AuthHeaderCtxKey)
+	ctx = context.WithValue(ctx, key, astruct{})
 
-	auth, err := GetAuthHeaderFromContext(ctx)
-	assert.Nil(t, err)
-	assert.Equal(t, "auth", auth)
+	_, err := GetAuthHeaderFromContext(ctx)
+	assert.ErrorContains(t, err, "someone stored a wrong value in the [authHeader] key with type [<nil>], expected [string]")
+}
+
+func TestAddAuthHeaderToContextNoValue(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	_, err := GetAuthHeaderFromContext(ctx)
+	assert.ErrorContains(t, err, "someone stored a wrong value in the [authHeader] key with type [<nil>], expected [string]")
 }
 
 func TestAddWebTokenToContext(t *testing.T) {
@@ -97,11 +106,10 @@ func TestAddWebTokenToContextNegative(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	key := ContextKey(openmfpjwt.WebTokenCtxKey)
-	ctx = context.WithValue(ctx, key, astruct{})
+	ctx = context.WithValue(ctx, openmfpjwt.WebTokenCtxKey, astruct{})
 
 	_, err := GetWebTokenFromContext(ctx)
-	assert.Error(t, err, "someone stored a wrong value in the [web_token] key with type [context.astruct], expected [jwt.WebToken]")
+	assert.ErrorContains(t, err, "someone stored a wrong value in the [webToken] key with type [<nil>], expected [jwt.WebToken]")
 }
 
 func TestAddWebTokenToContextWrongToken(t *testing.T) {
