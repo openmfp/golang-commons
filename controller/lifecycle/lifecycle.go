@@ -26,7 +26,7 @@ import (
 )
 
 type LifecycleManager struct {
-	logger           *logger.Logger
+	log              *logger.Logger
 	client           client.Client
 	subroutines      []Subroutine
 	operatorName     string
@@ -46,9 +46,14 @@ type Subroutine interface {
 	Finalizers() []string
 }
 
-func NewLifecycleManager(logger *logger.Logger, operatorName string, controllerName string, client client.Client, subroutines []Subroutine) *LifecycleManager {
+func NewLifecycleManager(ctx context.Context, operatorName string, controllerName string, client client.Client, subroutines []Subroutine) *LifecycleManager {
+	log := logger.NewFromZerolog(logger.LoadLoggerFromContext(ctx).
+		With().
+		Str("operator", operatorName).
+		Str("controller", controllerName).Logger())
+
 	return &LifecycleManager{
-		logger:           logger,
+		log:              log,
 		client:           client,
 		subroutines:      subroutines,
 		operatorName:     operatorName,
@@ -63,7 +68,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 
 	result := ctrl.Result{}
 	reconcileId := uuid.New().String()
-	log := logger.NewFromZerolog(l.logger.With().Str("name", req.Name).Str("namespace", req.Namespace).Str("reconcile_id", reconcileId).Logger())
+	log := logger.NewFromZerolog(l.log.With().Str("name", req.Name).Str("namespace", req.Namespace).Str("reconcile_id", reconcileId).Logger())
 	sentryTags := sentry.Tags{"namespace": req.Namespace, "name": req.Name}
 
 	ctx = logger.SetLoggerInContext(ctx, log)
