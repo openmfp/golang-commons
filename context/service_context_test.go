@@ -1,4 +1,4 @@
-package context
+package context_test
 
 import (
 	"context"
@@ -7,6 +7,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 
+	openmfpctx "github.com/openmfp/golang-commons/context"
+	"github.com/openmfp/golang-commons/context/keys"
 	openmfpjwt "github.com/openmfp/golang-commons/jwt"
 )
 
@@ -16,9 +18,9 @@ func TestAddSpiffeToContext(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	ctx = AddSpiffeToContext(ctx, "spiffe")
+	ctx = openmfpctx.AddSpiffeToContext(ctx, "spiffe")
 
-	spiffe, err := GetSpiffeFromContext(ctx)
+	spiffe, err := openmfpctx.GetSpiffeFromContext(ctx)
 	assert.Nil(t, err)
 	assert.Equal(t, "spiffe", spiffe)
 }
@@ -27,10 +29,10 @@ func TestWrongSpiffeToContext(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	key := ContextKey(openmfpjwt.SpiffeCtxKey)
+	key := openmfpctx.ContextKey(openmfpjwt.SpiffeCtxKey)
 	ctx = context.WithValue(ctx, key, astruct{})
 
-	_, err := GetSpiffeFromContext(ctx)
+	_, err := openmfpctx.GetSpiffeFromContext(ctx)
 	assert.Error(t, err, "someone stored a wrong value in the [spiffe] key with type [context.astruct], expected [string]")
 }
 
@@ -38,9 +40,9 @@ func TestAddTenantToContext(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	ctx = AddTenantToContext(ctx, "tenant")
+	ctx = openmfpctx.AddTenantToContext(ctx, "tenant")
 
-	tenant, err := GetTenantFromContext(ctx)
+	tenant, err := openmfpctx.GetTenantFromContext(ctx)
 	assert.Nil(t, err)
 	assert.Equal(t, "tenant", tenant)
 }
@@ -49,42 +51,58 @@ func TestAddTenantToContextNegative(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	key := ContextKey(openmfpjwt.TenantIdCtxKey)
+	key := openmfpctx.ContextKey(openmfpjwt.TenantIdCtxKey)
 	ctx = context.WithValue(ctx, key, astruct{})
 
-	_, err := GetTenantFromContext(ctx)
+	_, err := openmfpctx.GetTenantFromContext(ctx)
 	assert.Error(t, err, "someone stored a wrong value in the [tenant] key with type [context.astruct], expected [string]")
 }
 
-func TestAddAuthHeaderToContext(t *testing.T) {
+func TestAddAndGetAuthHeaderToContext(t *testing.T) {
 	t.Parallel()
 
-	ctx := context.Background()
-	ctx = AddAuthHeaderToContext(ctx, "auth")
+	tests := []struct {
+		name        string
+		authHeader  any
+		expectError bool
+	}{
+		{
+			name:        "should return the auth header from if stored in the context",
+			authHeader:  "auth",
+			expectError: false,
+		},
+		{
+			name:        "should error out if a wrong value is stored inside the context",
+			authHeader:  4,
+			expectError: true,
+		},
+		{
+			name:        "should error out if no value is stored inside the context",
+			authHeader:  nil,
+			expectError: true,
+		},
+		{
+			name:        "should error out if an empty string is stored inside the context",
+			authHeader:  "",
+			expectError: true,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.WithValue(context.Background(), keys.AuthHeaderCtxKey, test.authHeader)
 
-	auth, err := GetAuthHeaderFromContext(ctx)
-	assert.Nil(t, err)
-	assert.Equal(t, "auth", auth)
-}
+			val, err := openmfpctx.GetAuthHeaderFromContext(ctx)
+			if test.expectError {
+				assert.Error(t, err)
+				return
+			} else {
+				assert.NoError(t, err)
+			}
 
-func TestAddAuthHeaderToContextNegative(t *testing.T) {
-	t.Parallel()
+			assert.Equal(t, test.authHeader, val)
 
-	ctx := context.Background()
-	key := ContextKey(openmfpjwt.AuthHeaderCtxKey)
-	ctx = context.WithValue(ctx, key, astruct{})
-
-	_, err := GetAuthHeaderFromContext(ctx)
-	assert.ErrorContains(t, err, "someone stored a wrong value in the [authHeader] key with type [<nil>], expected [string]")
-}
-
-func TestAddAuthHeaderToContextNoValue(t *testing.T) {
-	t.Parallel()
-
-	ctx := context.Background()
-
-	_, err := GetAuthHeaderFromContext(ctx)
-	assert.ErrorContains(t, err, "someone stored a wrong value in the [authHeader] key with type [<nil>], expected [string]")
+		})
+	}
 }
 
 func TestAddWebTokenToContext(t *testing.T) {
@@ -95,9 +113,9 @@ func TestAddWebTokenToContext(t *testing.T) {
 	tokenString, err := generateJWT(issuer)
 	assert.NoError(t, err)
 
-	ctx = AddWebTokenToContext(ctx, tokenString)
+	ctx = openmfpctx.AddWebTokenToContext(ctx, tokenString)
 
-	token, err := GetWebTokenFromContext(ctx)
+	token, err := openmfpctx.GetWebTokenFromContext(ctx)
 	assert.Nil(t, err)
 	assert.Equal(t, issuer, token.Issuer)
 }
@@ -106,9 +124,9 @@ func TestAddWebTokenToContextNegative(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	ctx = context.WithValue(ctx, openmfpjwt.WebTokenCtxKey, astruct{})
+	ctx = context.WithValue(ctx, keys.WebTokenCtxKey, nil)
 
-	_, err := GetWebTokenFromContext(ctx)
+	_, err := openmfpctx.GetWebTokenFromContext(ctx)
 	assert.ErrorContains(t, err, "someone stored a wrong value in the [webToken] key with type [<nil>], expected [jwt.WebToken]")
 }
 
@@ -118,7 +136,7 @@ func TestAddWebTokenToContextWrongToken(t *testing.T) {
 	initialContext := context.Background()
 	tokenString := "not-a-token"
 
-	ctx := AddWebTokenToContext(initialContext, tokenString)
+	ctx := openmfpctx.AddWebTokenToContext(initialContext, tokenString)
 
 	assert.Equal(t, initialContext, ctx)
 }
@@ -142,9 +160,9 @@ func TestAddIsTechnicalIssuerToContext(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	ctx = AddIsTechnicalIssuerToContext(ctx)
+	ctx = openmfpctx.AddIsTechnicalIssuerToContext(ctx)
 
-	isTechnicalIssuer := GetIsTechnicalIssuerFromContext(ctx)
+	isTechnicalIssuer := openmfpctx.GetIsTechnicalIssuerFromContext(ctx)
 	assert.True(t, isTechnicalIssuer)
 }
 
@@ -153,7 +171,7 @@ func TestAddIsTechnicalIssuerToContextNegative(t *testing.T) {
 
 	ctx := context.Background()
 
-	isTechnicalIssuer := GetIsTechnicalIssuerFromContext(ctx)
+	isTechnicalIssuer := openmfpctx.GetIsTechnicalIssuerFromContext(ctx)
 	assert.False(t, isTechnicalIssuer)
 }
 
@@ -161,9 +179,9 @@ func TestHasTenantInContext(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	ctx = AddTenantToContext(ctx, "tenant")
+	ctx = openmfpctx.AddTenantToContext(ctx, "tenant")
 
-	hasTenant := HasTenantInContext(ctx)
+	hasTenant := openmfpctx.HasTenantInContext(ctx)
 	assert.True(t, hasTenant)
 }
 
@@ -172,6 +190,6 @@ func TestHasTenantInContextNegative(t *testing.T) {
 
 	ctx := context.Background()
 
-	hasTenant := HasTenantInContext(ctx)
+	hasTenant := openmfpctx.HasTenantInContext(ctx)
 	assert.False(t, hasTenant)
 }

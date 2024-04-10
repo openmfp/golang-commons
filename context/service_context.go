@@ -48,8 +48,8 @@ func AddAuthHeaderToContext(ctx context.Context, headerValue string) context.Con
 
 func GetAuthHeaderFromContext(ctx context.Context) (string, error) {
 	auth, ok := ctx.Value(keys.AuthHeaderCtxKey).(string)
-	if !ok {
-		return auth, fmt.Errorf("someone stored a wrong value in the [%s] key with type [%T], expected [string]", jwt.AuthHeaderCtxKey, ctx.Value(keys.AuthHeaderCtxKey))
+	if !ok || auth == "" {
+		return auth, fmt.Errorf("someone stored a wrong or empty value in the [%s] key with type [%T], expected [string]", jwt.AuthHeaderCtxKey, ctx.Value(keys.AuthHeaderCtxKey))
 	}
 
 	return auth, nil
