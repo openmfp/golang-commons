@@ -32,22 +32,22 @@ func getNextReconcileTime() time.Duration {
 }
 
 // onNextReconcile is a helper function to set the next reconcile time and return the requeueAfter time
-func onNextReconcile(instanceStatusObj RuntimeObjectSpreadReconcileStatus, logger *logger.Logger) (ctrl.Result, error) {
+func onNextReconcile(instanceStatusObj RuntimeObjectSpreadReconcileStatus, log *logger.Logger) (ctrl.Result, error) {
 	requeueAfter := time.Until(instanceStatusObj.GetNextReconcileTime().Time.UTC())
-	logger.Debug().Int64("minutes-till-next-execution", int64(requeueAfter.Minutes())).Msg("Completed reconciliation, no processing needed")
+	log.Debug().Int64("minutes-till-next-execution", int64(requeueAfter.Minutes())).Msg("Completed reconciliation, no processing needed")
 	return ctrl.Result{RequeueAfter: requeueAfter}, nil
 }
 
 // setNextReconcileTime calculates and sets the next reconcile time for the instance
-func setNextReconcileTime(instanceStatusObj RuntimeObjectSpreadReconcileStatus, logger *logger.Logger) {
+func setNextReconcileTime(instanceStatusObj RuntimeObjectSpreadReconcileStatus, log *logger.Logger) {
 	nextReconcileTime := getNextReconcileTime()
-	logger.Debug().Int64("minutes-till-next-execution", int64(nextReconcileTime.Minutes())).Msg("Setting next reconcile time for the instance")
+	log.Debug().Int64("minutes-till-next-execution", int64(nextReconcileTime.Minutes())).Msg("Setting next reconcile time for the instance")
 	instanceStatusObj.SetNextReconcileTime(v1.NewTime(time.Now().Add(nextReconcileTime)))
 }
 
 // updateObservedGeneration updates the observed generation of the instance struct
-func updateObservedGeneration(instanceStatusObj RuntimeObjectSpreadReconcileStatus, logger *logger.Logger) {
-	logger.Debug().Int64("observed-generation", instanceStatusObj.GetObservedGeneration()).Int64("generation", instanceStatusObj.GetGeneration()).Msg("Updating observed generation")
+func updateObservedGeneration(instanceStatusObj RuntimeObjectSpreadReconcileStatus, log *logger.Logger) {
+	log.Debug().Int64("observed-generation", instanceStatusObj.GetObservedGeneration()).Int64("generation", instanceStatusObj.GetGeneration()).Msg("Updating observed generation")
 	instanceStatusObj.SetObservedGeneration(instanceStatusObj.GetGeneration())
 }
 func removeRefreshLabelIfExists(instance RuntimeObject) bool {

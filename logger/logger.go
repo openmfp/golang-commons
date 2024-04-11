@@ -114,8 +114,8 @@ func NewRequestLoggerFromZerolog(ctx context.Context, logger zerolog.Logger) *Lo
 	return &Logger{logger}
 }
 
-func SetLoggerInContext(ctx context.Context, logger *Logger) context.Context {
-	return context.WithValue(ctx, keys.LoggerCtxKey, logger)
+func SetLoggerInContext(ctx context.Context, log *Logger) context.Context {
+	return context.WithValue(ctx, keys.LoggerCtxKey, log)
 }
 
 // LoadFromContext returns the Logger from a given context
