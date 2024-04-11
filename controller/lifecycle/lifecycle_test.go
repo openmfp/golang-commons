@@ -15,7 +15,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/openmfp/golang-commons/controller/testSupport"
-	"github.com/openmfp/golang-commons/logger"
 	"github.com/openmfp/golang-commons/logger/testlogger"
 	"github.com/openmfp/golang-commons/sentry"
 )
@@ -483,8 +482,6 @@ func (r *testReconciler) Reconcile(ctx context.Context, req controllerruntime.Re
 
 func createLifecycleManager(subroutines []Subroutine, c client.Client) (*LifecycleManager, *testlogger.TestLogger) {
 	log := testlogger.New()
-	ctx := logger.SetLoggerInContext(context.Background(), log.Logger)
-
-	mgr := NewLifecycleManager(ctx, "test-operator", "test-controller", c, subroutines)
+	mgr := NewLifecycleManager(log.Logger, "test-operator", "test-controller", c, subroutines)
 	return mgr, log
 }

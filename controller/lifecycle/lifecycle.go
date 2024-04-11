@@ -46,12 +46,9 @@ type Subroutine interface {
 	Finalizers() []string
 }
 
-func NewLifecycleManager(ctx context.Context, operatorName string, controllerName string, client client.Client, subroutines []Subroutine) *LifecycleManager {
-	log := logger.NewFromZerolog(logger.LoadLoggerFromContext(ctx).
-		With().
-		Str("operator", operatorName).
-		Str("controller", controllerName).Logger())
+func NewLifecycleManager(log *logger.Logger, operatorName string, controllerName string, client client.Client, subroutines []Subroutine) *LifecycleManager {
 
+	log = log.MustChildLoggerWithAttributes("operator", operatorName, "controller", controllerName)
 	return &LifecycleManager{
 		log:              log,
 		client:           client,
@@ -68,14 +65,19 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 
 	result := ctrl.Result{}
 	reconcileId := uuid.New().String()
-	log := logger.NewFromZerolog(l.log.With().Str("name", req.Name).Str("namespace", req.Namespace).Str("reconcile_id", reconcileId).Logger())
+
+	log, err := l.log.ChildLoggerWithAttributes("name", req.Name, "namespace", req.Namespace, "reconcile_id", reconcileId)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	sentryTags := sentry.Tags{"namespace": req.Namespace, "name": req.Name}
 
 	ctx = logger.SetLoggerInContext(ctx, log)
 	ctx = sentry.ContextWithSentryTags(ctx, sentryTags)
 
 	log.Info().Msg("start reconcile")
-	err := l.client.Get(ctx, req.NamespacedName, instance)
+	err = l.client.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
 			log.Info().Msg("instance not found. It was likely deleted")
@@ -172,7 +174,7 @@ func containsFinalizer(o client.Object, subroutineFinalizers []string) bool {
 }
 
 func (l *LifecycleManager) reconcileSubroutine(ctx context.Context, instance RuntimeObject, subroutine Subroutine, log *logger.Logger, sentryTags map[string]string) (ctrl.Result, error) {
-	subroutineLogger := logger.NewFromZerolog(log.With().Str("subroutine", subroutine.GetName()).Logger())
+	subroutineLogger := log.ChildLogger("subroutine", subroutine.GetName())
 	ctx = logger.SetLoggerInContext(ctx, subroutineLogger)
 	subroutineLogger.Debug().Msg("start subroutine")
 

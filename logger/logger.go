@@ -2,6 +2,7 @@ package logger
 
 import (
 	"context"
+	"errors"
 	"io"
 	"os"
 	"runtime"
@@ -67,6 +68,34 @@ func (l *Logger) ComponentLogger(component string) *Logger {
 // SubLogger returns a new child logger that inherits all settings but adds a new string key field
 func (l *Logger) ChildLogger(key string, value string) *Logger {
 	return NewFromZerolog(l.With().Str(key, value).Logger())
+}
+
+var ErrInvalidKeyValPair = errors.New("invalid key value pair")
+
+// SubLogger returns a new child logger that inherits all settings but adds a number of new string key field
+func (l *Logger) ChildLoggerWithAttributes(keyVal ...string) (*Logger, error) {
+	if len(keyVal)%2 != 0 {
+		return nil, ErrInvalidKeyValPair
+
+	}
+	var key string
+	for i, v := range keyVal {
+		if i%2 == 0 {
+			key = v
+			continue
+		}
+		l = l.ChildLogger(key, v)
+	}
+	return l, nil
+}
+
+// MustChildLogger returns a new child logger that inherits all settings but adds a number of new string key field. It panics in case of wrong use.
+func (l *Logger) MustChildLoggerWithAttributes(keyVal ...string) *Logger {
+	logger, err := l.ChildLoggerWithAttributes(keyVal...)
+	if err != nil {
+		l.Fatal().Err(err).Msg("failed to create child logger")
+	}
+	return logger
 }
 
 // Level wraps the underlying zerolog level func to openmfp logger level
