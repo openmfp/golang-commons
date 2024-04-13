@@ -134,6 +134,9 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 					if setSubroutineCondition(&conditions, subroutine.GetName(), v1.ConditionFalse, "The subroutine failed", "SubroutineFailed") {
 						instanceConditionsObj.SetConditions(conditions)
 					}
+					if setReady(&conditions, v1.ConditionFalse) {
+						instanceConditionsObj.SetConditions(conditions)
+					}
 				}
 			}
 			_ = l.updateStatus(ctx, originalCopy, instance, log, sentryTags)
