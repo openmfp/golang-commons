@@ -24,28 +24,77 @@ func TestLifecycleManager_WithConditionManagement(t *testing.T) {
 
 // Test the setReady function with an empty array
 func TestSetReady(t *testing.T) {
-	// Given
-	condition := []metav1.Condition{}
 
-	// When
-	setReady(&condition, metav1.ConditionTrue)
+	t.Run("TestSetReady with empty array", func(t *testing.T) {
+		// Given
+		condition := []metav1.Condition{}
 
-	// Then
-	assert.Equal(t, 1, len(condition))
-	assert.Equal(t, metav1.ConditionTrue, condition[0].Status)
+		// When
+		setReady(&condition, metav1.ConditionTrue)
+
+		// Then
+		assert.Equal(t, 1, len(condition))
+		assert.Equal(t, metav1.ConditionTrue, condition[0].Status)
+	})
+
+	t.Run("TestSetReady with existing condition", func(t *testing.T) {
+		// Given
+		condition := []metav1.Condition{
+			{Type: "test", Status: metav1.ConditionFalse},
+		}
+
+		// When
+		setReady(&condition, metav1.ConditionTrue)
+
+		// Then
+		assert.Equal(t, 2, len(condition))
+		assert.Equal(t, metav1.ConditionTrue, condition[1].Status)
+	})
 }
 
-// Test the setReady function with existing conditions
-func TestSetReadyWithExistingConditions(t *testing.T) {
-	// Given
-	condition := []metav1.Condition{
-		{Type: "test", Status: metav1.ConditionFalse},
-	}
+func TestSetUnknown(t *testing.T) {
 
-	// When
-	setReady(&condition, metav1.ConditionTrue)
+	t.Run("TestSetUnknown with empty array", func(t *testing.T) {
+		// Given
+		condition := []metav1.Condition{}
 
-	// Then
-	assert.Equal(t, 2, len(condition))
-	assert.Equal(t, metav1.ConditionTrue, condition[1].Status)
+		// When
+		setUnknownIfNotSet(&condition)
+
+		// Then
+		assert.Equal(t, 1, len(condition))
+		assert.Equal(t, metav1.ConditionUnknown, condition[0].Status)
+	})
+
+	t.Run("TestSetUnknown with existing ready condition", func(t *testing.T) {
+		// Given
+		condition := []metav1.Condition{
+			{Type: ConditionReady, Status: metav1.ConditionTrue},
+		}
+
+		// When
+		setUnknownIfNotSet(&condition)
+
+		// Then
+		assert.Equal(t, 1, len(condition))
+		assert.Equal(t, metav1.ConditionTrue, condition[0].Status)
+	})
+}
+
+// Test setSubroutineCondition with no existing conditions
+func TestSetSubroutineCondition(t *testing.T) {
+
+	t.Run("TestSetSubroutineCondition with empty array", func(t *testing.T) {
+		// Given
+		condition := []metav1.Condition{}
+
+		// When
+		setSubroutineCondition(&condition, "test", metav1.ConditionTrue, "test message", "test reason")
+
+		// Then
+		assert.Equal(t, 1, len(condition))
+		assert.Equal(t, metav1.ConditionTrue, condition[0].Status)
+		assert.Equal(t, "test_Ready", condition[0].Type)
+		assert.Equal(t, "test message", condition[0].Message)
+	})
 }

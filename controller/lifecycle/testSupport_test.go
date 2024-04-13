@@ -14,6 +14,18 @@ import (
 	"github.com/openmfp/golang-commons/errors"
 )
 
+type implementConditions struct {
+	testSupport.TestApiObject
+}
+
+func (m *implementConditions) GetConditions() []metav1.Condition {
+	return m.Status.Conditions
+}
+
+func (m *implementConditions) SetConditions(conditions []metav1.Condition) {
+	m.Status.Conditions = conditions
+}
+
 type implementingSpreadReconciles struct {
 	testSupport.TestApiObject
 }
@@ -72,12 +84,15 @@ type changeStatusSubroutine struct {
 }
 
 func (c changeStatusSubroutine) Process(_ context.Context, runtimeObj RuntimeObject) (controllerruntime.Result, errors.OperatorError) {
-	instance, ok := runtimeObj.(*testSupport.TestApiObject)
-	if ok {
+	if instance, ok := runtimeObj.(*testSupport.TestApiObject); ok {
 		instance.Status.Some = "other string"
-	} else {
-		i, _ := runtimeObj.(*implementingSpreadReconciles)
-		i.Status.Some = "other string"
+	}
+	if instance, ok := runtimeObj.(*implementingSpreadReconciles); ok {
+		instance.Status.Some = "other string"
+	}
+
+	if instance, ok := runtimeObj.(*implementConditions); ok {
+		instance.Status.Some = "other string"
 	}
 	return controllerruntime.Result{}, nil
 }

@@ -22,10 +22,20 @@ type RuntimeObjectConditions interface {
 }
 
 func setReady(conditions *[]metav1.Condition, status metav1.ConditionStatus) bool {
+
+	var msg string
+	switch status {
+	case metav1.ConditionTrue:
+		msg = "The resource is ready"
+	case metav1.ConditionFalse:
+		msg = "The resource is not ready"
+	default:
+		msg = ""
+	}
 	return meta.SetStatusCondition(conditions, metav1.Condition{
 		Type:    ConditionReady,
 		Status:  status,
-		Message: "The resource is ready",
+		Message: msg,
 		Reason:  ConditionReady,
 	})
 }

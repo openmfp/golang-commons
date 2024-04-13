@@ -506,6 +506,101 @@ func TestLifecycle(t *testing.T) {
 		assert.Equal(t, testErr, err)
 		assert.Equal(t, controllerruntime.Result{}, result)
 	})
+
+	t.Run("Lifecycle with manage conditions reconciles w/o subroutines", func(t *testing.T) {
+		// Arrange
+		instance := &implementConditions{
+			testSupport.TestApiObject{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       name,
+					Namespace:  namespace,
+					Generation: 1,
+				},
+				Status: testSupport.TestStatus{},
+			},
+		}
+
+		fakeClient := testSupport.CreateFakeClient(t, instance)
+
+		mgr, _ := createLifecycleManager([]Subroutine{}, fakeClient)
+		mgr.WithConditionManagement()
+
+		// Act
+		_, err := mgr.Reconcile(ctx, request, instance)
+
+		assert.NoError(t, err)
+		assert.Len(t, instance.Status.Conditions, 1)
+		assert.Equal(t, instance.Status.Conditions[0].Type, ConditionReady)
+		assert.Equal(t, instance.Status.Conditions[0].Status, metav1.ConditionTrue)
+		assert.Equal(t, instance.Status.Conditions[0].Message, "The resource is ready")
+	})
+
+	t.Run("Lifecycle with manage conditions reconciles with subroutine", func(t *testing.T) {
+		// Arrange
+		instance := &implementConditions{
+			testSupport.TestApiObject{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       name,
+					Namespace:  namespace,
+					Generation: 1,
+				},
+				Status: testSupport.TestStatus{},
+			},
+		}
+
+		fakeClient := testSupport.CreateFakeClient(t, instance)
+
+		mgr, _ := createLifecycleManager([]Subroutine{
+			changeStatusSubroutine{
+				client: fakeClient,
+			}}, fakeClient)
+		mgr.WithConditionManagement()
+
+		// Act
+		_, err := mgr.Reconcile(ctx, request, instance)
+
+		assert.NoError(t, err)
+		assert.Len(t, instance.Status.Conditions, 2)
+		assert.Equal(t, instance.Status.Conditions[0].Type, ConditionReady)
+		assert.Equal(t, instance.Status.Conditions[0].Status, metav1.ConditionTrue)
+		assert.Equal(t, instance.Status.Conditions[0].Message, "The resource is ready")
+		assert.Equal(t, instance.Status.Conditions[1].Type, fmt.Sprintf("%s_Ready", "changeStatus"))
+		assert.Equal(t, instance.Status.Conditions[1].Status, metav1.ConditionTrue)
+		assert.Equal(t, instance.Status.Conditions[1].Message, "The subroutine was successful")
+	})
+
+	t.Run("Lifecycle with manage conditions reconciles with RequeAfter subroutine", func(t *testing.T) {
+		// Arrange
+		instance := &implementConditions{
+			testSupport.TestApiObject{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       name,
+					Namespace:  namespace,
+					Generation: 1,
+				},
+				Status: testSupport.TestStatus{},
+			},
+		}
+
+		fakeClient := testSupport.CreateFakeClient(t, instance)
+
+		mgr, _ := createLifecycleManager([]Subroutine{
+			failureScenarioSubroutine{Retry: false, RequeAfter: true}}, fakeClient)
+		mgr.WithConditionManagement()
+
+		// Act
+		_, err := mgr.Reconcile(ctx, request, instance)
+
+		assert.NoError(t, err)
+		assert.Len(t, instance.Status.Conditions, 2)
+		assert.Equal(t, ConditionReady, instance.Status.Conditions[0].Type)
+		assert.Equal(t, metav1.ConditionFalse, instance.Status.Conditions[0].Status)
+		assert.Equal(t, "The resource is not ready", instance.Status.Conditions[0].Message)
+		assert.Equal(t, "failureScenarioSubroutine_Ready", instance.Status.Conditions[1].Type)
+		assert.Equal(t, metav1.ConditionUnknown, instance.Status.Conditions[1].Status)
+		assert.Equal(t, "The subroutine is being processed", instance.Status.Conditions[1].Message)
+	})
+
 }
 
 type testReconciler struct {

@@ -13,6 +13,7 @@ type TestApiObject struct {
 }
 type TestStatus struct {
 	Some               string
+	Conditions         []metav1.Condition
 	NextReconcileTime  metav1.Time
 	ObservedGeneration int64
 }
