@@ -40,7 +40,7 @@ func setUnknownIfNotSet(conditions *[]metav1.Condition) bool {
 }
 
 func setSubroutineCondition(conditions *[]metav1.Condition, subroutineName string, status metav1.ConditionStatus, message string, reason string) bool {
-	name := fmt.Sprintf("Subroutine_%s_Ready", subroutineName)
+	name := fmt.Sprintf("%s_Ready", subroutineName)
 	return meta.SetStatusCondition(conditions, metav1.Condition{
 		Type:    name,
 		Status:  status,
