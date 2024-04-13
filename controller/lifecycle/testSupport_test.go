@@ -112,9 +112,14 @@ func (c changeStatusSubroutine) Finalizers() []string {
 type failureScenarioSubroutine struct {
 	Retry      bool
 	RequeAfter bool
+	Err        bool
 }
 
 func (f failureScenarioSubroutine) Process(_ context.Context, _ RuntimeObject) (controllerruntime.Result, errors.OperatorError) {
+	if f.Err {
+		return controllerruntime.Result{}, errors.NewOperatorError(fmt.Errorf("failureScenarioSubroutine"), true, false)
+	}
+
 	if f.Retry {
 		return controllerruntime.Result{Requeue: true}, nil
 	}

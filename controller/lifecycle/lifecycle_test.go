@@ -601,6 +601,68 @@ func TestLifecycle(t *testing.T) {
 		assert.Equal(t, "The subroutine is being processed", instance.Status.Conditions[1].Message)
 	})
 
+	t.Run("Lifecycle with manage conditions reconciles with Error subroutine", func(t *testing.T) {
+		// Arrange
+		instance := &implementConditions{
+			testSupport.TestApiObject{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       name,
+					Namespace:  namespace,
+					Generation: 1,
+				},
+				Status: testSupport.TestStatus{},
+			},
+		}
+
+		fakeClient := testSupport.CreateFakeClient(t, instance)
+
+		mgr, _ := createLifecycleManager([]Subroutine{
+			failureScenarioSubroutine{Err: true, Retry: false, RequeAfter: false}}, fakeClient)
+		mgr.WithConditionManagement()
+
+		// Act
+		_, err := mgr.Reconcile(ctx, request, instance)
+
+		assert.Error(t, err)
+		assert.Len(t, instance.Status.Conditions, 2)
+		assert.Equal(t, ConditionReady, instance.Status.Conditions[0].Type)
+		assert.Equal(t, metav1.ConditionFalse, instance.Status.Conditions[0].Status)
+		assert.Equal(t, "The resource is not ready", instance.Status.Conditions[0].Message)
+		assert.Equal(t, "failureScenarioSubroutine_Ready", instance.Status.Conditions[1].Type)
+		assert.Equal(t, metav1.ConditionFalse, instance.Status.Conditions[1].Status)
+		assert.Equal(t, "The subroutine failed", instance.Status.Conditions[1].Message)
+	})
+
+	t.Run("Lifecycle with manage conditions not implementing the interface", func(t *testing.T) {
+		// Arrange
+		instance := &notImplementingSpreadReconciles{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       name,
+				Namespace:  namespace,
+				Generation: 1,
+			},
+			Status: testSupport.TestStatus{
+				Some:               "string",
+				ObservedGeneration: 0,
+			},
+		}
+
+		fakeClient := testSupport.CreateFakeClient(t, instance)
+
+		mgr, _ := createLifecycleManager([]Subroutine{
+			changeStatusSubroutine{
+				client: fakeClient,
+			},
+		}, fakeClient)
+		mgr.WithConditionManagement()
+
+		// Act
+		_, err := mgr.Reconcile(ctx, request, instance)
+
+		assert.Error(t, err)
+		assert.Equal(t, "manageConditions is enabled, but instance does not implement RuntimeObjectConditions interface. This is a programming error", err.Error())
+	})
+
 }
 
 type testReconciler struct {

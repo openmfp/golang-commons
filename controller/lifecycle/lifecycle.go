@@ -67,18 +67,14 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 	result := ctrl.Result{}
 	reconcileId := uuid.New().String()
 
-	log, err := l.log.ChildLoggerWithAttributes("name", req.Name, "namespace", req.Namespace, "reconcile_id", reconcileId)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
+	log := l.log.MustChildLoggerWithAttributes("name", req.Name, "namespace", req.Namespace, "reconcile_id", reconcileId)
 	sentryTags := sentry.Tags{"namespace": req.Namespace, "name": req.Name}
 
 	ctx = logger.SetLoggerInContext(ctx, log)
 	ctx = sentry.ContextWithSentryTags(ctx, sentryTags)
 
 	log.Info().Msg("start reconcile")
-	err = l.client.Get(ctx, req.NamespacedName, instance)
+	err := l.client.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
 			log.Info().Msg("instance not found. It was likely deleted")
