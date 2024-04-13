@@ -102,6 +102,20 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 			return ctrl.Result{}, err
 		}
 	}
+
+	if l.manageConditions {
+		if instanceConditionsObj, ok := instance.(RuntimeObjectConditions); ok {
+			conditions := instanceConditionsObj.GetConditions()
+			if setReady(&conditions, v1.ConditionUnknown) {
+				instanceConditionsObj.SetConditions(conditions)
+			}
+		} else {
+			err = fmt.Errorf("manageConditions is enabled, but instance does not implement RuntimeObjectConditions interface. This is a programming error")
+			log.Error().Err(err).Msg("Error during reconcile")
+			sentry.CaptureError(err, sentryTags)
+			return ctrl.Result{}, err
+		}
+	}
 	// Continue with reconciliation
 	for _, subroutine := range l.subroutines {
 		if l.manageConditions {
