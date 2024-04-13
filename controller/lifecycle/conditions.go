@@ -1,6 +1,8 @@
 package lifecycle
 
 import (
+	"fmt"
+
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -25,5 +27,15 @@ func setReady(conditions *[]metav1.Condition, status metav1.ConditionStatus) boo
 		Status:  status,
 		Message: "The resource is ready",
 		Reason:  ConditionReady,
+	})
+}
+
+func setSubroutineCondition(conditions *[]metav1.Condition, subroutineName string, status metav1.ConditionStatus, message string, reason string) bool {
+	name := fmt.Sprintf("Subroutine_%s_Ready", subroutineName)
+	return meta.SetStatusCondition(conditions, metav1.Condition{
+		Type:    name,
+		Status:  status,
+		Message: message,
+		Reason:  reason,
 	})
 }

@@ -87,7 +87,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 		return l.handleClientError("failed to retrieve instance", log, err, sentryTags)
 	}
 
-	c := instance.DeepCopyObject()
+	originalCopy := instance.DeepCopyObject()
 
 	if l.spreadReconciles && instance.GetDeletionTimestamp().IsZero() {
 		if instanceStatusObj, ok := instance.(RuntimeObjectSpreadReconcileStatus); ok {
@@ -104,8 +104,25 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 	}
 	// Continue with reconciliation
 	for _, subroutine := range l.subroutines {
+		if l.manageConditions {
+			if instanceConditionsObj, ok := instance.(RuntimeObjectConditions); ok {
+				conditions := instanceConditionsObj.GetConditions()
+				if setSubroutineCondition(&conditions, subroutine.GetName(), v1.ConditionUnknown, "The subroutine is being processed", "SubroutineProcessing") {
+					instanceConditionsObj.SetConditions(conditions)
+				}
+			}
+		}
 		subResult, err := l.reconcileSubroutine(ctx, instance, subroutine, log, sentryTags)
 		if err != nil {
+			if l.manageConditions {
+				if instanceConditionsObj, ok := instance.(RuntimeObjectConditions); ok {
+					conditions := instanceConditionsObj.GetConditions()
+					if setSubroutineCondition(&conditions, subroutine.GetName(), v1.ConditionFalse, "The subroutine failed", "SubroutineFailed") {
+						instanceConditionsObj.SetConditions(conditions)
+					}
+				}
+			}
+			_ = l.updateStatus(ctx, originalCopy, instance, log, sentryTags)
 			return subResult, err
 		}
 		if subResult.Requeue {
@@ -114,6 +131,17 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 		if subResult.RequeueAfter > 0 {
 			if subResult.RequeueAfter < result.RequeueAfter || result.RequeueAfter == 0 {
 				result.RequeueAfter = subResult.RequeueAfter
+			}
+		}
+		if l.manageConditions {
+			if instanceConditionsObj, ok := instance.(RuntimeObjectConditions); ok {
+				conditions := instanceConditionsObj.GetConditions()
+				if !subResult.Requeue && subResult.RequeueAfter == 0 {
+					// Subroutine was successful
+					if setSubroutineCondition(&conditions, subroutine.GetName(), v1.ConditionTrue, "The subroutine was successful", "SubroutineSuccess") {
+						instanceConditionsObj.SetConditions(conditions)
+					}
+				}
 			}
 		}
 	}
@@ -146,21 +174,9 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 		}
 	}
 
-	currentStatus := reflect.Indirect(reflect.ValueOf(instance)).FieldByName("Status").Interface()
-	originalStatus := reflect.Indirect(reflect.ValueOf(c)).FieldByName("Status").Interface()
-	equal := reflect.DeepEqual(currentStatus, originalStatus)
-	if !equal {
-		log.Info().Msg("updating resource status")
-		err = l.client.Status().Update(ctx, instance)
-		if err != nil {
-			if !k8sErrors.IsConflict(err) {
-				sentry.CaptureError(err, sentryTags, sentry.Extras{"message": "Updating of instance status failed"})
-			}
-			log.Error().Err(err).Msg("cannot update reconciliation Conditions, kubernetes client error")
-			return result, err
-		}
-	} else {
-		log.Info().Msg("skipping status update, since they are equal")
+	err = l.updateStatus(ctx, originalCopy, instance, log, sentryTags)
+	if err != nil {
+		return result, err
 	}
 
 	if l.spreadReconciles && instance.GetDeletionTimestamp().IsZero() {
@@ -175,6 +191,26 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 
 	log.Info().Msg("end reconcile")
 	return result, nil
+}
+
+func (l *LifecycleManager) updateStatus(ctx context.Context, original runtime.Object, current RuntimeObject, log *logger.Logger, sentryTags sentry.Tags) error {
+	currentStatus := reflect.Indirect(reflect.ValueOf(current)).FieldByName("Status").Interface()
+	originalStatus := reflect.Indirect(reflect.ValueOf(original)).FieldByName("Status").Interface()
+	equal := reflect.DeepEqual(currentStatus, originalStatus)
+	if !equal {
+		log.Info().Msg("updating resource status")
+		err := l.client.Status().Update(ctx, current)
+		if err != nil {
+			if !k8sErrors.IsConflict(err) {
+				sentry.CaptureError(err, sentryTags, sentry.Extras{"message": "Updating of instance status failed"})
+			}
+			log.Error().Err(err).Msg("cannot update reconciliation Conditions, kubernetes client error")
+			return err
+		}
+	} else {
+		log.Info().Msg("skipping status update, since they are equal")
+	}
+	return nil
 }
 
 func (l *LifecycleManager) handleClientError(msg string, log *logger.Logger, err error, sentryTags sentry.Tags) (ctrl.Result, error) {
