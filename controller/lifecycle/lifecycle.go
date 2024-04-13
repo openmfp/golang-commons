@@ -32,6 +32,7 @@ type LifecycleManager struct {
 	operatorName     string
 	controllerName   string
 	spreadReconciles bool
+	manageConditions bool
 }
 
 type RuntimeObject interface {
@@ -123,6 +124,24 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 			if instanceStatusObj, ok := instance.(RuntimeObjectSpreadReconcileStatus); ok {
 				setNextReconcileTime(instanceStatusObj, log)
 				updateObservedGeneration(instanceStatusObj, log)
+			}
+		}
+
+		if l.manageConditions {
+			if instanceConditionsObj, ok := instance.(RuntimeObjectConditions); ok {
+				conditions := instanceConditionsObj.GetConditions()
+				if setReady(&conditions, v1.ConditionTrue) {
+					instanceConditionsObj.SetConditions(conditions)
+				}
+			}
+		}
+	} else {
+		if l.manageConditions {
+			if instanceConditionsObj, ok := instance.(RuntimeObjectConditions); ok {
+				conditions := instanceConditionsObj.GetConditions()
+				if setReady(&conditions, v1.ConditionFalse) {
+					instanceConditionsObj.SetConditions(conditions)
+				}
 			}
 		}
 	}
