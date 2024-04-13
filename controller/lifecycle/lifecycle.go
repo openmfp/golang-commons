@@ -106,7 +106,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 	if l.manageConditions {
 		if instanceConditionsObj, ok := instance.(RuntimeObjectConditions); ok {
 			conditions := instanceConditionsObj.GetConditions()
-			if setReady(&conditions, v1.ConditionUnknown) {
+			if setUnknownIfNotSet(&conditions) {
 				instanceConditionsObj.SetConditions(conditions)
 			}
 		} else {

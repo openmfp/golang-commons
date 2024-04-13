@@ -30,6 +30,15 @@ func setReady(conditions *[]metav1.Condition, status metav1.ConditionStatus) boo
 	})
 }
 
+// Function to set Ready Condition to unknown in case it is not set or not ready
+func setUnknownIfNotSet(conditions *[]metav1.Condition) bool {
+	existingCondition := meta.FindStatusCondition(*conditions, ConditionReady)
+	if existingCondition == nil {
+		return setReady(conditions, metav1.ConditionUnknown)
+	}
+	return false
+}
+
 func setSubroutineCondition(conditions *[]metav1.Condition, subroutineName string, status metav1.ConditionStatus, message string, reason string) bool {
 	name := fmt.Sprintf("Subroutine_%s_Ready", subroutineName)
 	return meta.SetStatusCondition(conditions, metav1.Condition{
