@@ -254,6 +254,42 @@ func TestLifecycle(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, instance.Generation, instance.Status.ObservedGeneration)
 	})
+
+	t.Run("Lifecycle with spread reconciles on deleted object", func(t *testing.T) {
+		// Arrange
+		instance := &implementingSpreadReconciles{
+			testSupport.TestApiObject{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              name,
+					Namespace:         namespace,
+					Generation:        2,
+					DeletionTimestamp: &metav1.Time{Time: time.Now()},
+					Finalizers:        []string{finalizer},
+				},
+				Status: testSupport.TestStatus{
+					Some:               "string",
+					ObservedGeneration: 2,
+					NextReconcileTime:  metav1.Time{Time: time.Now().Add(2 * time.Hour)},
+				},
+			},
+		}
+
+		fakeClient := testSupport.CreateFakeClient(t, instance)
+
+		mgr, _ := createLifecycleManager([]Subroutine{
+			changeStatusSubroutine{
+				client: fakeClient,
+			},
+		}, fakeClient)
+		mgr.WithSpreadingReconciles()
+
+		// Act
+		_, err := mgr.Reconcile(ctx, request, instance)
+		assert.NoError(t, err)
+		assert.Len(t, instance.Finalizers, 0)
+
+	})
+
 	t.Run("Lifecycle with spread reconciles skips if the generation is the same", func(t *testing.T) {
 		// Arrange
 		instance := &implementingSpreadReconciles{

@@ -88,7 +88,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 
 	c := instance.DeepCopyObject()
 
-	if l.spreadReconciles {
+	if l.spreadReconciles && instance.GetDeletionTimestamp().IsZero() {
 		if instanceStatusObj, ok := instance.(RuntimeObjectSpreadReconcileStatus); ok {
 			if !slices.Contains(maps.Keys(instance.GetLabels()), SpreadReconcileRefreshLabel) &&
 				(instance.GetGeneration() == instanceStatusObj.GetObservedGeneration() || v1.Now().UTC().Before(instanceStatusObj.GetNextReconcileTime().Time.UTC())) {
@@ -119,7 +119,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 
 	if !result.Requeue && result.RequeueAfter == 0 {
 		// Reconciliation was successful
-		if l.spreadReconciles {
+		if l.spreadReconciles && instance.GetDeletionTimestamp().IsZero() {
 			if instanceStatusObj, ok := instance.(RuntimeObjectSpreadReconcileStatus); ok {
 				setNextReconcileTime(instanceStatusObj, log)
 				updateObservedGeneration(instanceStatusObj, log)
@@ -144,7 +144,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 		log.Info().Msg("skipping status update, since they are equal")
 	}
 
-	if l.spreadReconciles {
+	if l.spreadReconciles && instance.GetDeletionTimestamp().IsZero() {
 		removed := removeRefreshLabelIfExists(instance)
 		if removed {
 			updateErr := l.client.Update(ctx, instance)

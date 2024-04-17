@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openmfp/golang-commons/controller/testSupport"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/openmfp/golang-commons/controller/testSupport"
 	"github.com/openmfp/golang-commons/errors"
 )
 
@@ -83,8 +83,7 @@ func (c changeStatusSubroutine) Process(_ context.Context, runtimeObj RuntimeObj
 }
 
 func (c changeStatusSubroutine) Finalize(_ context.Context, _ RuntimeObject) (controllerruntime.Result, errors.OperatorError) {
-	//TODO implement me
-	panic("implement me")
+	return controllerruntime.Result{}, nil
 }
 
 func (c changeStatusSubroutine) GetName() string {
@@ -92,7 +91,7 @@ func (c changeStatusSubroutine) GetName() string {
 }
 
 func (c changeStatusSubroutine) Finalizers() []string {
-	return []string{}
+	return []string{"finalizer"}
 }
 
 type failureScenarioSubroutine struct {
