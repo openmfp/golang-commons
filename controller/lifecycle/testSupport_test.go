@@ -106,7 +106,7 @@ func (c changeStatusSubroutine) GetName() string {
 }
 
 func (c changeStatusSubroutine) Finalizers() []string {
-	return []string{"finalizer"}
+	return []string{"changestatus"}
 }
 
 type failureScenarioSubroutine struct {

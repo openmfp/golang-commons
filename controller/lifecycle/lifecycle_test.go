@@ -561,12 +561,50 @@ func TestLifecycle(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Len(t, instance.Status.Conditions, 2)
+		assert.Equal(t, ConditionReady, instance.Status.Conditions[0].Type)
+		assert.Equal(t, metav1.ConditionTrue, instance.Status.Conditions[0].Status)
+		assert.Equal(t, "The resource is ready", instance.Status.Conditions[0].Message)
+		assert.Equal(t, "changeStatus_Ready", instance.Status.Conditions[1].Type)
+		assert.Equal(t, metav1.ConditionTrue, instance.Status.Conditions[1].Status)
+		assert.Equal(t, "The subroutine is complete", instance.Status.Conditions[1].Message)
+	})
+
+	t.Run("Lifecycle with manage conditions reconciles with multiple subroutines partially succeeding", func(t *testing.T) {
+		// Arrange
+		instance := &implementConditions{
+			testSupport.TestApiObject{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              name,
+					Namespace:         namespace,
+					Generation:        1,
+					DeletionTimestamp: &metav1.Time{Time: time.Now()},
+					Finalizers:        []string{finalizer, "changestatus"},
+				},
+				Status: testSupport.TestStatus{},
+			},
+		}
+
+		fakeClient := testSupport.CreateFakeClient(t, instance)
+
+		mgr, _ := createLifecycleManager([]Subroutine{
+			failureScenarioSubroutine{},
+			changeStatusSubroutine{client: fakeClient}}, fakeClient)
+		mgr.WithConditionManagement()
+
+		// Act
+		_, err := mgr.Reconcile(ctx, request, instance)
+
+		assert.Error(t, err)
+		assert.Len(t, instance.Status.Conditions, 3)
 		assert.Equal(t, instance.Status.Conditions[0].Type, ConditionReady)
-		assert.Equal(t, instance.Status.Conditions[0].Status, metav1.ConditionTrue)
-		assert.Equal(t, instance.Status.Conditions[0].Message, "The resource is ready")
-		assert.Equal(t, instance.Status.Conditions[1].Type, fmt.Sprintf("%s_Ready", "changeStatus"))
+		assert.Equal(t, instance.Status.Conditions[0].Status, metav1.ConditionFalse)
+		assert.Equal(t, instance.Status.Conditions[0].Message, "The resource is not ready")
+		assert.Equal(t, instance.Status.Conditions[1].Type, "changeStatus_Finalize", "")
 		assert.Equal(t, instance.Status.Conditions[1].Status, metav1.ConditionTrue)
-		assert.Equal(t, instance.Status.Conditions[1].Message, "The subroutine was successful")
+		assert.Equal(t, instance.Status.Conditions[1].Message, "The subroutine finalization is complete")
+		assert.Equal(t, instance.Status.Conditions[2].Type, "failureScenarioSubroutine_Finalize")
+		assert.Equal(t, instance.Status.Conditions[2].Status, metav1.ConditionFalse)
+		assert.Equal(t, instance.Status.Conditions[2].Message, "The subroutine finalization has an error: failureScenarioSubroutine")
 	})
 
 	t.Run("Lifecycle with manage conditions reconciles with RequeAfter subroutine", func(t *testing.T) {
@@ -598,7 +636,7 @@ func TestLifecycle(t *testing.T) {
 		assert.Equal(t, "The resource is not ready", instance.Status.Conditions[0].Message)
 		assert.Equal(t, "failureScenarioSubroutine_Ready", instance.Status.Conditions[1].Type)
 		assert.Equal(t, metav1.ConditionUnknown, instance.Status.Conditions[1].Status)
-		assert.Equal(t, "The subroutine is being processed", instance.Status.Conditions[1].Message)
+		assert.Equal(t, "The subroutine finalization is processing", instance.Status.Conditions[1].Message)
 	})
 
 	t.Run("Lifecycle with manage conditions reconciles with Error subroutine", func(t *testing.T) {
@@ -630,7 +668,7 @@ func TestLifecycle(t *testing.T) {
 		assert.Equal(t, "The resource is not ready", instance.Status.Conditions[0].Message)
 		assert.Equal(t, "failureScenarioSubroutine_Ready", instance.Status.Conditions[1].Type)
 		assert.Equal(t, metav1.ConditionFalse, instance.Status.Conditions[1].Status)
-		assert.Equal(t, "The subroutine failed", instance.Status.Conditions[1].Message)
+		assert.Equal(t, "The subroutine has an error: failureScenarioSubroutine", instance.Status.Conditions[1].Message)
 	})
 
 	t.Run("Lifecycle with manage conditions not implementing the interface", func(t *testing.T) {

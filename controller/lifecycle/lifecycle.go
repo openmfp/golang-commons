@@ -84,6 +84,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 	}
 
 	originalCopy := instance.DeepCopyObject()
+	inDeletion := instance.GetDeletionTimestamp() != nil
 	var conditions []v1.Condition
 	if l.manageConditions {
 		if instanceConditionsObj, ok := instance.(RuntimeObjectConditions); ok {
@@ -111,22 +112,26 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 	}
 
 	if l.manageConditions {
-		setUnknownIfNotSet(&conditions)
+		setInstanceConditionUnknownIfNotSet(&conditions)
 	}
+
+	// In case of deletion execute the finalize subroutines in the reverse order as subroutine processing
+	subroutines := make([]Subroutine, len(l.subroutines))
+	copy(subroutines, l.subroutines)
+	if inDeletion {
+		slices.Reverse(subroutines)
+	}
+
 	// Continue with reconciliation
-	for _, subroutine := range l.subroutines {
+	for _, subroutine := range subroutines {
 		if l.manageConditions {
-			setSubroutineCondition(&conditions, subroutine.GetName(), v1.ConditionUnknown, "The subroutine is being processed", "SubroutineProcessing")
+			setSubroutineConditionToUnknownIfNotSet(&conditions, subroutine, inDeletion)
 		}
 		subResult, err := l.reconcileSubroutine(ctx, instance, subroutine, log, sentryTags)
 		if err != nil {
 			if l.manageConditions {
-				if instance.GetDeletionTimestamp() != nil {
-					setFinalizationCondition(conditions, subroutine, result, err)
-				} else {
-					setSubroutineCondition(&conditions, subroutine.GetName(), v1.ConditionFalse, "The subroutine failed", "SubroutineFailed")
-					setReady(&conditions, v1.ConditionFalse)
-				}
+				setSubroutineCondition(&conditions, subroutine, result, err, inDeletion)
+				setInstanceConditionReady(&conditions, v1.ConditionFalse)
 				if instanceConditionsObj, ok := instance.(RuntimeObjectConditions); ok {
 					instanceConditionsObj.SetConditions(conditions)
 				}
@@ -144,8 +149,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 		}
 		if l.manageConditions {
 			if !subResult.Requeue && subResult.RequeueAfter == 0 {
-				// Subroutine was successful
-				setSubroutineCondition(&conditions, subroutine.GetName(), v1.ConditionTrue, "The subroutine was successful", "SubroutineSuccess")
+				setSubroutineCondition(&conditions, subroutine, subResult, err, inDeletion)
 			}
 		}
 	}
@@ -160,11 +164,11 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 		}
 
 		if l.manageConditions {
-			setReady(&conditions, v1.ConditionTrue)
+			setInstanceConditionReady(&conditions, v1.ConditionTrue)
 		}
 	} else {
 		if l.manageConditions {
-			setReady(&conditions, v1.ConditionFalse)
+			setInstanceConditionReady(&conditions, v1.ConditionFalse)
 		}
 	}
 

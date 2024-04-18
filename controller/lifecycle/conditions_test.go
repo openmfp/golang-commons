@@ -30,7 +30,7 @@ func TestSetReady(t *testing.T) {
 		condition := []metav1.Condition{}
 
 		// When
-		setReady(&condition, metav1.ConditionTrue)
+		setInstanceConditionReady(&condition, metav1.ConditionTrue)
 
 		// Then
 		assert.Equal(t, 1, len(condition))
@@ -44,7 +44,7 @@ func TestSetReady(t *testing.T) {
 		}
 
 		// When
-		setReady(&condition, metav1.ConditionTrue)
+		setInstanceConditionReady(&condition, metav1.ConditionTrue)
 
 		// Then
 		assert.Equal(t, 2, len(condition))
@@ -59,7 +59,7 @@ func TestSetUnknown(t *testing.T) {
 		condition := []metav1.Condition{}
 
 		// When
-		setUnknownIfNotSet(&condition)
+		setInstanceConditionUnknownIfNotSet(&condition)
 
 		// Then
 		assert.Equal(t, 1, len(condition))
@@ -73,28 +73,10 @@ func TestSetUnknown(t *testing.T) {
 		}
 
 		// When
-		setUnknownIfNotSet(&condition)
+		setInstanceConditionUnknownIfNotSet(&condition)
 
 		// Then
 		assert.Equal(t, 1, len(condition))
 		assert.Equal(t, metav1.ConditionTrue, condition[0].Status)
-	})
-}
-
-// Test setSubroutineCondition with no existing conditions
-func TestSetSubroutineCondition(t *testing.T) {
-
-	t.Run("TestSetSubroutineCondition with empty array", func(t *testing.T) {
-		// Given
-		condition := []metav1.Condition{}
-
-		// When
-		setSubroutineCondition(&condition, "test", metav1.ConditionTrue, "test message", "test reason")
-
-		// Then
-		assert.Equal(t, 1, len(condition))
-		assert.Equal(t, metav1.ConditionTrue, condition[0].Status)
-		assert.Equal(t, "test_Ready", condition[0].Type)
-		assert.Equal(t, "test message", condition[0].Message)
 	})
 }

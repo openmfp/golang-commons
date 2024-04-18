@@ -25,8 +25,8 @@ type RuntimeObjectConditions interface {
 	SetConditions([]metav1.Condition)
 }
 
-func setReady(conditions *[]metav1.Condition, status metav1.ConditionStatus) bool {
-
+// Set the Condition of the instance to be ready
+func setInstanceConditionReady(conditions *[]metav1.Condition, status metav1.ConditionStatus) bool {
 	var msg string
 	switch status {
 	case metav1.ConditionTrue:
@@ -34,7 +34,7 @@ func setReady(conditions *[]metav1.Condition, status metav1.ConditionStatus) boo
 	case metav1.ConditionFalse:
 		msg = "The resource is not ready"
 	default:
-		msg = ""
+		msg = "The resource is processing"
 	}
 	return meta.SetStatusCondition(conditions, metav1.Condition{
 		Type:    ConditionReady,
@@ -44,35 +44,66 @@ func setReady(conditions *[]metav1.Condition, status metav1.ConditionStatus) boo
 	})
 }
 
-// Function to set Ready Condition to unknown in case it is not set or not ready
-func setUnknownIfNotSet(conditions *[]metav1.Condition) bool {
+// Set the Condition to be Unknown in case it is not set yet
+func setInstanceConditionUnknownIfNotSet(conditions *[]metav1.Condition) bool {
 	existingCondition := meta.FindStatusCondition(*conditions, ConditionReady)
 	if existingCondition == nil {
-		return setReady(conditions, metav1.ConditionUnknown)
+		return setInstanceConditionReady(conditions, metav1.ConditionUnknown)
 	}
 	return false
 }
 
-func setSubroutineCondition(conditions *[]metav1.Condition, subroutineName string, status metav1.ConditionStatus, message string, reason string) bool {
-	name := fmt.Sprintf("%s_Ready", subroutineName)
-	return meta.SetStatusCondition(conditions, metav1.Condition{
-		Type:    name,
-		Status:  status,
-		Message: message,
-		Reason:  reason,
-	})
+func setSubroutineConditionToUnknownIfNotSet(conditions *[]metav1.Condition, subroutine Subroutine, isFinalize bool) bool {
+	conditionName := fmt.Sprintf("%s_Ready", subroutine.GetName())
+	if isFinalize {
+		conditionName = fmt.Sprintf("%s_Finalize", subroutine.GetName())
+	}
+	existingCondition := meta.FindStatusCondition(*conditions, conditionName)
+	if existingCondition == nil {
+		changed := meta.SetStatusCondition(conditions,
+			metav1.Condition{Type: conditionName, Status: metav1.ConditionUnknown, Message: "The subroutine finalization is processing", Reason: MessageProcessing})
+		return changed
+
+	}
+	return false
 }
 
-func setFinalizationCondition(conditions []metav1.Condition, subroutine Subroutine, subroutineResult ctrl.Result, subroutineErr error) {
-	conditionName := fmt.Sprintf("%s_Finalize", subroutine.GetName())
-	// finalization complete
-	if subroutineErr == nil && !subroutineResult.Requeue && subroutineResult.RequeueAfter == 0 {
-		setSubroutineCondition(&conditions, conditionName, metav1.ConditionTrue, "The subroutine finalization is complete", MessageComplete)
+// Set Subroutines Conditions
+func setSubroutineCondition(conditions *[]metav1.Condition, subroutine Subroutine, subroutineResult ctrl.Result, subroutineErr error, isFinalize bool) bool {
+	if isFinalize {
+		conditionName := fmt.Sprintf("%s_Finalize", subroutine.GetName())
+		// finalization complete
+		if subroutineErr == nil && !subroutineResult.Requeue && subroutineResult.RequeueAfter == 0 {
+			return meta.SetStatusCondition(conditions,
+				metav1.Condition{Type: conditionName, Status: metav1.ConditionTrue, Message: "The subroutine finalization is complete", Reason: MessageComplete})
+		}
+		// finalize is still processing
+		if subroutineErr == nil && (subroutineResult.RequeueAfter > 0 || subroutineResult.Requeue) {
+			return meta.SetStatusCondition(conditions,
+				metav1.Condition{Type: conditionName, Status: metav1.ConditionUnknown, Message: "The subroutine finalization is processing", Reason: MessageProcessing})
+		}
+		// finalize succeeded
+		if subroutineErr != nil {
+			return meta.SetStatusCondition(conditions,
+				metav1.Condition{Type: conditionName, Status: metav1.ConditionFalse, Message: fmt.Sprintf("The subroutine finalization has an error: %s", subroutineErr.Error()), Reason: MessageError})
+		}
+	} else {
+		conditionName := fmt.Sprintf("%s_Ready", subroutine.GetName())
+		// processing complete
+		if subroutineErr == nil && !subroutineResult.Requeue && subroutineResult.RequeueAfter == 0 {
+			return meta.SetStatusCondition(conditions,
+				metav1.Condition{Type: conditionName, Status: metav1.ConditionTrue, Message: "The subroutine is complete", Reason: MessageComplete})
+		}
+		// processing is still processing
+		if subroutineErr == nil && (subroutineResult.RequeueAfter > 0 || subroutineResult.Requeue) {
+			return meta.SetStatusCondition(conditions,
+				metav1.Condition{Type: conditionName, Status: metav1.ConditionUnknown, Message: "The subroutine is processing", Reason: MessageProcessing})
+		}
+		// processing succeeded
+		if subroutineErr != nil {
+			return meta.SetStatusCondition(conditions,
+				metav1.Condition{Type: conditionName, Status: metav1.ConditionFalse, Message: fmt.Sprintf("The subroutine has an error: %s", subroutineErr.Error()), Reason: MessageError})
+		}
 	}
-	if subroutineErr == nil && (subroutineResult.RequeueAfter > 0 || subroutineResult.Requeue) {
-		setSubroutineCondition(&conditions, conditionName, metav1.ConditionUnknown, "The subroutine finalization is processing", MessageProcessing)
-	}
-	if subroutineErr != nil {
-		setSubroutineCondition(&conditions, conditionName, metav1.ConditionFalse, fmt.Sprintf("The subroutine finalization has an error: %s", subroutineErr.Error()), MessageError)
-	}
+	return false
 }
