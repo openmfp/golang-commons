@@ -201,19 +201,21 @@ func (l *LifecycleManager) updateStatus(ctx context.Context, original runtime.Ob
 	currentStatus := reflect.Indirect(reflect.ValueOf(current)).FieldByName("Status").Interface()
 	originalStatus := reflect.Indirect(reflect.ValueOf(original)).FieldByName("Status").Interface()
 	equal := reflect.DeepEqual(currentStatus, originalStatus)
-	if !equal {
-		log.Info().Msg("updating resource status")
-		err := l.client.Status().Update(ctx, current)
-		if err != nil {
-			if !k8sErrors.IsConflict(err) {
-				sentry.CaptureError(err, sentryTags, sentry.Extras{"message": "Updating of instance status failed"})
-			}
-			log.Error().Err(err).Msg("cannot update reconciliation Conditions, kubernetes client error")
-			return err
-		}
-	} else {
+	if equal {
 		log.Info().Msg("skipping status update, since they are equal")
+		return nil
 	}
+
+	log.Info().Msg("updating resource status")
+	err := l.client.Status().Update(ctx, current)
+	if err != nil {
+		if !k8sErrors.IsConflict(err) {
+			sentry.CaptureError(err, sentryTags, sentry.Extras{"message": "Updating of instance status failed"})
+		}
+		log.Error().Err(err).Msg("cannot update reconciliation Conditions, kubernetes client error")
+		return err
+	}
+
 	return nil
 }
 
@@ -244,8 +246,10 @@ func (l *LifecycleManager) reconcileSubroutine(ctx context.Context, instance Run
 	if instance.GetDeletionTimestamp() != nil {
 		if containsFinalizer(instance, subroutine.Finalizers()) {
 			result, err = subroutine.Finalize(ctx, instance)
-			// Remove finalizers unless requeue is requested
-			err = l.removeFinalizerIfNeeded(ctx, instance, subroutine, err, result)
+			if err == nil {
+				// Remove finalizers unless requeue is requested
+				err = l.removeFinalizerIfNeeded(ctx, instance, subroutine, result)
+			}
 		}
 	} else {
 		err = l.addFinalizerIfNeeded(ctx, instance, subroutine)
@@ -264,8 +268,8 @@ func (l *LifecycleManager) reconcileSubroutine(ctx context.Context, instance Run
 	return result, nil
 }
 
-func (l *LifecycleManager) removeFinalizerIfNeeded(ctx context.Context, instance RuntimeObject, subroutine Subroutine, err errors.OperatorError, result ctrl.Result) errors.OperatorError {
-	if err == nil && !result.Requeue && result.RequeueAfter == 0 {
+func (l *LifecycleManager) removeFinalizerIfNeeded(ctx context.Context, instance RuntimeObject, subroutine Subroutine, result ctrl.Result) errors.OperatorError {
+	if !result.Requeue && result.RequeueAfter == 0 {
 		update := false
 		for _, f := range subroutine.Finalizers() {
 			needsUpdate := controllerutil.RemoveFinalizer(instance, f)
@@ -274,13 +278,14 @@ func (l *LifecycleManager) removeFinalizerIfNeeded(ctx context.Context, instance
 			}
 		}
 		if update {
-			updateErr := l.client.Update(ctx, instance)
-			if updateErr != nil {
-				return errors.NewOperatorError(errors.Wrap(updateErr, "failed to update instance"), true, false)
+			err := l.client.Update(ctx, instance)
+			if err != nil {
+				return errors.NewOperatorError(errors.Wrap(err, "failed to update instance"), true, false)
 			}
 		}
 	}
-	return err
+
+	return nil
 }
 
 func (l *LifecycleManager) addFinalizerIfNeeded(ctx context.Context, instance RuntimeObject, subroutine Subroutine) errors.OperatorError {
