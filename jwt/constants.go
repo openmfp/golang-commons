@@ -7,5 +7,8 @@ const SpiffeCtxKey = "spiffe"
 
 // Request Headers
 
-const HeaderSpiffeValue = "X-Forwarded-Client-Cert"
+const Accept = "Accept"
 const AuthorizationHeaderName = "Authorization"
+const ContentType = "Content-Type"
+const HeaderSpiffeValue = "X-Forwarded-Client-Cert"
+const XCSRFToken = "X-CSRF-Token"
