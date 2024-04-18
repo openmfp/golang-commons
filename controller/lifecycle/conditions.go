@@ -83,10 +83,9 @@ func setSubroutineCondition(conditions *[]metav1.Condition, subroutine Subroutin
 				metav1.Condition{Type: conditionName, Status: metav1.ConditionUnknown, Message: "The subroutine finalization is processing", Reason: MessageProcessing})
 		}
 		// finalize succeeded
-		if subroutineErr != nil {
-			return meta.SetStatusCondition(conditions,
-				metav1.Condition{Type: conditionName, Status: metav1.ConditionFalse, Message: fmt.Sprintf("The subroutine finalization has an error: %s", subroutineErr.Error()), Reason: MessageError})
-		}
+		return meta.SetStatusCondition(conditions,
+			metav1.Condition{Type: conditionName, Status: metav1.ConditionFalse, Message: fmt.Sprintf("The subroutine finalization has an error: %s", subroutineErr.Error()), Reason: MessageError})
+
 	} else {
 		conditionName := fmt.Sprintf("%s_Ready", subroutine.GetName())
 		// processing complete
@@ -100,10 +99,7 @@ func setSubroutineCondition(conditions *[]metav1.Condition, subroutine Subroutin
 				metav1.Condition{Type: conditionName, Status: metav1.ConditionUnknown, Message: "The subroutine is processing", Reason: MessageProcessing})
 		}
 		// processing succeeded
-		if subroutineErr != nil {
-			return meta.SetStatusCondition(conditions,
-				metav1.Condition{Type: conditionName, Status: metav1.ConditionFalse, Message: fmt.Sprintf("The subroutine has an error: %s", subroutineErr.Error()), Reason: MessageError})
-		}
+		return meta.SetStatusCondition(conditions,
+			metav1.Condition{Type: conditionName, Status: metav1.ConditionFalse, Message: fmt.Sprintf("The subroutine has an error: %s", subroutineErr.Error()), Reason: MessageError})
 	}
-	return false
 }

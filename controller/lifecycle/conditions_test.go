@@ -1,10 +1,13 @@
 package lifecycle
 
 import (
+	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	controllerruntime "sigs.k8s.io/controller-runtime"
 
 	"github.com/openmfp/golang-commons/controller/testSupport"
 )
@@ -78,5 +81,137 @@ func TestSetUnknown(t *testing.T) {
 		// Then
 		assert.Equal(t, 1, len(condition))
 		assert.Equal(t, metav1.ConditionTrue, condition[0].Status)
+	})
+}
+
+func TestSetSubroutineConditionToUnknownIfNotSet(t *testing.T) {
+
+	t.Run("TestSetSubroutineConditionToUnknownIfNotSet with empty array", func(t *testing.T) {
+		// Given
+		condition := []metav1.Condition{}
+
+		// When
+		setSubroutineConditionToUnknownIfNotSet(&condition, changeStatusSubroutine{}, false)
+
+		// Then
+		assert.Equal(t, 1, len(condition))
+		assert.Equal(t, metav1.ConditionUnknown, condition[0].Status)
+	})
+
+	t.Run("TestSetSubroutineConditionToUnknownIfNotSet with existing condition", func(t *testing.T) {
+		// Given
+		condition := []metav1.Condition{
+			{Type: "test", Status: metav1.ConditionFalse},
+		}
+
+		// When
+		setSubroutineConditionToUnknownIfNotSet(&condition, changeStatusSubroutine{}, false)
+
+		// Then
+		assert.Equal(t, 2, len(condition))
+		assert.Equal(t, metav1.ConditionUnknown, condition[1].Status)
+	})
+
+	t.Run("TestSetSubroutineConditionToUnknownIfNotSet with existing ready", func(t *testing.T) {
+		// Given
+		subroutine := changeStatusSubroutine{}
+		condition := []metav1.Condition{
+			{Type: "test", Status: metav1.ConditionFalse},
+			{Type: fmt.Sprintf("%s_Ready", subroutine.GetName()), Status: metav1.ConditionTrue},
+		}
+
+		// When
+		setSubroutineConditionToUnknownIfNotSet(&condition, subroutine, false)
+
+		// Then
+		assert.Equal(t, 2, len(condition))
+		assert.Equal(t, metav1.ConditionTrue, condition[1].Status)
+	})
+}
+
+func TestSubroutineCondition(t *testing.T) {
+
+	// Add a test case to set a subroutine condition to ready if it was successfull
+	t.Run("TestSetSubroutineConditionReady", func(t *testing.T) {
+		// Given
+		condition := []metav1.Condition{}
+		subroutine := changeStatusSubroutine{}
+
+		// When
+		setSubroutineCondition(&condition, subroutine, controllerruntime.Result{}, nil, false)
+
+		// Then
+		assert.Equal(t, 1, len(condition))
+		assert.Equal(t, metav1.ConditionTrue, condition[0].Status)
+	})
+
+	// Add a test case to set a subroutine condition to unknown if it is still processing
+	t.Run("TestSetSubroutineConditionProcessing", func(t *testing.T) {
+		// Given
+		condition := []metav1.Condition{}
+		subroutine := changeStatusSubroutine{}
+
+		// When
+		setSubroutineCondition(&condition, subroutine, controllerruntime.Result{Requeue: true}, nil, false)
+
+		// Then
+		assert.Equal(t, 1, len(condition))
+		assert.Equal(t, metav1.ConditionUnknown, condition[0].Status)
+	})
+
+	// Add a test case to set a subroutine condition to false if it failed
+	t.Run("TestSetSubroutineConditionError", func(t *testing.T) {
+		// Given
+		condition := []metav1.Condition{}
+		subroutine := changeStatusSubroutine{}
+
+		// When
+		setSubroutineCondition(&condition, subroutine, controllerruntime.Result{}, errors.New("failed"), false)
+
+		// Then
+		assert.Equal(t, 1, len(condition))
+		assert.Equal(t, metav1.ConditionFalse, condition[0].Status)
+	})
+
+	// Add a test case to set a subroutine condition for isFinalize true
+	t.Run("TestSetSubroutineFinalizeConditionReady", func(t *testing.T) {
+		// Given
+		condition := []metav1.Condition{}
+		subroutine := changeStatusSubroutine{}
+
+		// When
+		setSubroutineCondition(&condition, subroutine, controllerruntime.Result{}, nil, true)
+
+		// Then
+		assert.Equal(t, 1, len(condition))
+		assert.Equal(t, metav1.ConditionTrue, condition[0].Status)
+	})
+
+	// Add a test case to set a subroutine condition to unknown if it is still processing
+	t.Run("TestSetSubroutineFinalizeConditionProcessing", func(t *testing.T) {
+		// Given
+		condition := []metav1.Condition{}
+		subroutine := changeStatusSubroutine{}
+
+		// When
+		setSubroutineCondition(&condition, subroutine, controllerruntime.Result{Requeue: true}, nil, true)
+
+		// Then
+		assert.Equal(t, 1, len(condition))
+		assert.Equal(t, metav1.ConditionUnknown, condition[0].Status)
+	})
+
+	// Add a test case to set a subroutine condition to false if it failed
+	t.Run("TestSetSubroutineFinalizeConditionError", func(t *testing.T) {
+		// Given
+		condition := []metav1.Condition{}
+		subroutine := changeStatusSubroutine{}
+
+		// When
+		setSubroutineCondition(&condition, subroutine, controllerruntime.Result{}, errors.New("failed"), true)
+
+		// Then
+		assert.Equal(t, 1, len(condition))
+		assert.Equal(t, metav1.ConditionFalse, condition[0].Status)
 	})
 }
