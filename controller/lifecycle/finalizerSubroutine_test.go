@@ -3,13 +3,14 @@ package lifecycle
 import (
 	"context"
 
-	"github.com/openmfp/golang-commons/controller/testSupport"
-	openMfpErrors "github.com/openmfp/golang-commons/errors"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/openmfp/golang-commons/controller/testSupport"
+	openMfpErrors "github.com/openmfp/golang-commons/errors"
 )
 
-const finalizer = "finalizer"
+const finalizerSubroutineFinalizer = "finalizer"
 
 type finalizerSubroutine struct {
 	client client.Client
@@ -36,6 +37,6 @@ func (c finalizerSubroutine) GetName() string {
 
 func (c finalizerSubroutine) Finalizers() []string {
 	return []string{
-		finalizer,
+		finalizerSubroutineFinalizer,
 	}
 }

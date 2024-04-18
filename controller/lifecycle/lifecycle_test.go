@@ -76,7 +76,7 @@ func TestLifecycle(t *testing.T) {
 	t.Run("Lifecycle with a finalizer - finalization", func(t *testing.T) {
 		// Arrange
 		now := &metav1.Time{Time: time.Now()}
-		finalizers := []string{finalizer}
+		finalizers := []string{finalizerSubroutineFinalizer}
 		instance := &testSupport.TestApiObject{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:              name,
@@ -131,7 +131,7 @@ func TestLifecycle(t *testing.T) {
 	t.Run("Lifecycle with a finalizer - failing finalization subroutine", func(t *testing.T) {
 		// Arrange
 		now := &metav1.Time{Time: time.Now()}
-		finalizers := []string{finalizer}
+		finalizers := []string{finalizerSubroutineFinalizer}
 		instance := &testSupport.TestApiObject{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:              name,
@@ -264,7 +264,7 @@ func TestLifecycle(t *testing.T) {
 					Namespace:         namespace,
 					Generation:        2,
 					DeletionTimestamp: &metav1.Time{Time: time.Now()},
-					Finalizers:        []string{finalizer},
+					Finalizers:        []string{changeStatusSubroutineFinalizer},
 				},
 				Status: testSupport.TestStatus{
 					Some:               "string",
@@ -569,7 +569,7 @@ func TestLifecycle(t *testing.T) {
 		assert.Equal(t, "The subroutine is complete", instance.Status.Conditions[1].Message)
 	})
 
-	t.Run("Lifecycle with manage conditions reconciles with multiple subroutines partially succeeding", func(t *testing.T) {
+	t.Run("Lifecycle with manage conditions finalizes with multiple subroutines partially succeeding", func(t *testing.T) {
 		// Arrange
 		instance := &implementConditions{
 			testSupport.TestApiObject{
@@ -578,7 +578,7 @@ func TestLifecycle(t *testing.T) {
 					Namespace:         namespace,
 					Generation:        1,
 					DeletionTimestamp: &metav1.Time{Time: time.Now()},
-					Finalizers:        []string{finalizer, "changestatus"},
+					Finalizers:        []string{failureScenarioSubroutineFinalizer, changeStatusSubroutineFinalizer},
 				},
 				Status: testSupport.TestStatus{},
 			},
@@ -596,15 +596,15 @@ func TestLifecycle(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Len(t, instance.Status.Conditions, 3)
-		assert.Equal(t, instance.Status.Conditions[0].Type, ConditionReady)
-		assert.Equal(t, instance.Status.Conditions[0].Status, metav1.ConditionFalse)
-		assert.Equal(t, instance.Status.Conditions[0].Message, "The resource is not ready")
-		assert.Equal(t, instance.Status.Conditions[1].Type, "changeStatus_Finalize", "")
-		assert.Equal(t, instance.Status.Conditions[1].Status, metav1.ConditionTrue)
-		assert.Equal(t, instance.Status.Conditions[1].Message, "The subroutine finalization is complete")
-		assert.Equal(t, instance.Status.Conditions[2].Type, "failureScenarioSubroutine_Finalize")
-		assert.Equal(t, instance.Status.Conditions[2].Status, metav1.ConditionFalse)
-		assert.Equal(t, instance.Status.Conditions[2].Message, "The subroutine finalization has an error: failureScenarioSubroutine")
+		assert.Equal(t, ConditionReady, instance.Status.Conditions[0].Type)
+		assert.Equal(t, metav1.ConditionFalse, instance.Status.Conditions[0].Status)
+		assert.Equal(t, "The resource is not ready", instance.Status.Conditions[0].Message)
+		assert.Equal(t, "changeStatus_Finalize", instance.Status.Conditions[1].Type, "")
+		assert.Equal(t, metav1.ConditionTrue, instance.Status.Conditions[1].Status)
+		assert.Equal(t, "The subroutine finalization is complete", instance.Status.Conditions[1].Message)
+		assert.Equal(t, "failureScenarioSubroutine_Finalize", instance.Status.Conditions[2].Type)
+		assert.Equal(t, metav1.ConditionFalse, instance.Status.Conditions[2].Status)
+		assert.Equal(t, "The subroutine finalization has an error: failureScenarioSubroutine", instance.Status.Conditions[2].Message)
 	})
 
 	t.Run("Lifecycle with manage conditions reconciles with RequeAfter subroutine", func(t *testing.T) {
@@ -709,7 +709,7 @@ func TestLifecycle(t *testing.T) {
 					Name:              name,
 					Namespace:         namespace,
 					Generation:        1,
-					Finalizers:        []string{finalizer},
+					Finalizers:        []string{failureScenarioSubroutineFinalizer},
 					DeletionTimestamp: &metav1.Time{Time: time.Now()},
 				},
 				Status: testSupport.TestStatus{

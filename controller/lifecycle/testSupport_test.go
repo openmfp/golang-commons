@@ -14,6 +14,9 @@ import (
 	"github.com/openmfp/golang-commons/errors"
 )
 
+const failureScenarioSubroutineFinalizer = "failuresubroutine"
+const changeStatusSubroutineFinalizer = "changestatus"
+
 type implementConditions struct {
 	testSupport.TestApiObject
 }
@@ -141,7 +144,7 @@ func (f failureScenarioSubroutine) Finalize(_ context.Context, _ RuntimeObject) 
 }
 
 func (f failureScenarioSubroutine) Finalizers() []string {
-	return []string{finalizer}
+	return []string{failureScenarioSubroutineFinalizer}
 }
 
 func (c failureScenarioSubroutine) GetName() string {
