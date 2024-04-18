@@ -3,14 +3,15 @@ package lifecycle
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"slices"
 
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel"
 	"golang.org/x/exp/maps"
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/equality"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -76,7 +77,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 	log.Info().Msg("start reconcile")
 	err := l.client.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
-		if k8sErrors.IsNotFound(err) {
+		if kerrors.IsNotFound(err) {
 			log.Info().Msg("instance not found. It was likely deleted")
 			return ctrl.Result{}, nil
 		}
@@ -198,18 +199,35 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 }
 
 func (l *LifecycleManager) updateStatus(ctx context.Context, original runtime.Object, current RuntimeObject, log *logger.Logger, sentryTags sentry.Tags) error {
-	currentStatus := reflect.Indirect(reflect.ValueOf(current)).FieldByName("Status").Interface()
-	originalStatus := reflect.Indirect(reflect.ValueOf(original)).FieldByName("Status").Interface()
-	equal := reflect.DeepEqual(currentStatus, originalStatus)
-	if equal {
+
+	currentUn, err := runtime.DefaultUnstructuredConverter.ToUnstructured(current)
+	if err != nil {
+		return err
+	}
+
+	originalUn, err := runtime.DefaultUnstructuredConverter.ToUnstructured(original)
+	if err != nil {
+		return err
+	}
+
+	currentStatus, hasField, err := unstructured.NestedFieldCopy(currentUn, "status")
+	if !hasField || err != nil {
+		return err
+	}
+	originalStatus, hasField, err := unstructured.NestedFieldCopy(originalUn, "status")
+	if !hasField || err != nil {
+		return err
+	}
+
+	if equality.Semantic.DeepEqual(currentStatus, originalStatus) {
 		log.Info().Msg("skipping status update, since they are equal")
 		return nil
 	}
 
 	log.Info().Msg("updating resource status")
-	err := l.client.Status().Update(ctx, current)
+	err = l.client.Status().Update(ctx, current)
 	if err != nil {
-		if !k8sErrors.IsConflict(err) {
+		if !kerrors.IsConflict(err) {
 			sentry.CaptureError(err, sentryTags, sentry.Extras{"message": "Updating of instance status failed"})
 		}
 		log.Error().Err(err).Msg("cannot update reconciliation Conditions, kubernetes client error")

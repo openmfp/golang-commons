@@ -18,7 +18,7 @@ const failureScenarioSubroutineFinalizer = "failuresubroutine"
 const changeStatusSubroutineFinalizer = "changestatus"
 
 type implementConditions struct {
-	testSupport.TestApiObject
+	testSupport.TestApiObject `json:",inline"`
 }
 
 func (m *implementConditions) GetConditions() []metav1.Condition {
@@ -30,7 +30,7 @@ func (m *implementConditions) SetConditions(conditions []metav1.Condition) {
 }
 
 type implementingSpreadReconciles struct {
-	testSupport.TestApiObject
+	testSupport.TestApiObject `json:",inline"`
 }
 
 func (m *implementingSpreadReconciles) GetGeneration() int64 {
