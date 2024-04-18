@@ -5,10 +5,14 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 const (
-	ConditionReady = "Ready"
+	ConditionReady    = "Ready"
+	MessageComplete   = "Complete"
+	MessageProcessing = "Processing"
+	MessageError      = "Error"
 )
 
 func (l *LifecycleManager) WithConditionManagement() *LifecycleManager {
@@ -57,4 +61,18 @@ func setSubroutineCondition(conditions *[]metav1.Condition, subroutineName strin
 		Message: message,
 		Reason:  reason,
 	})
+}
+
+func setFinalizationCondition(conditions []metav1.Condition, subroutine Subroutine, subroutineResult ctrl.Result, subroutineErr error) {
+	conditionName := fmt.Sprintf("%s_Finalize", subroutine.GetName())
+	// finalization complete
+	if subroutineErr == nil && !subroutineResult.Requeue && subroutineResult.RequeueAfter == 0 {
+		setSubroutineCondition(&conditions, conditionName, metav1.ConditionTrue, "The subroutine finalization is complete", MessageComplete)
+	}
+	if subroutineErr == nil && (subroutineResult.RequeueAfter > 0 || subroutineResult.Requeue) {
+		setSubroutineCondition(&conditions, conditionName, metav1.ConditionUnknown, "The subroutine finalization is processing", MessageProcessing)
+	}
+	if subroutineErr != nil {
+		setSubroutineCondition(&conditions, conditionName, metav1.ConditionFalse, fmt.Sprintf("The subroutine finalization has an error: %s", subroutineErr.Error()), MessageError)
+	}
 }

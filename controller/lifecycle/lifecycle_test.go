@@ -617,7 +617,7 @@ func TestLifecycle(t *testing.T) {
 		fakeClient := testSupport.CreateFakeClient(t, instance)
 
 		mgr, _ := createLifecycleManager([]Subroutine{
-			failureScenarioSubroutine{Err: true, Retry: false, RequeAfter: false}}, fakeClient)
+			failureScenarioSubroutine{Retry: false, RequeAfter: false}}, fakeClient)
 		mgr.WithConditionManagement()
 
 		// Act
@@ -661,6 +661,36 @@ func TestLifecycle(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Equal(t, "manageConditions is enabled, but instance does not implement RuntimeObjectConditions interface. This is a programming error", err.Error())
+	})
+
+	t.Run("Lifecycle with manage conditions failing finalize", func(t *testing.T) {
+		// Arrange
+		instance := &implementConditions{
+			testSupport.TestApiObject{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              name,
+					Namespace:         namespace,
+					Generation:        1,
+					Finalizers:        []string{finalizer},
+					DeletionTimestamp: &metav1.Time{Time: time.Now()},
+				},
+				Status: testSupport.TestStatus{
+					Some:               "string",
+					ObservedGeneration: 0,
+				},
+			},
+		}
+
+		fakeClient := testSupport.CreateFakeClient(t, instance)
+
+		mgr, _ := createLifecycleManager([]Subroutine{failureScenarioSubroutine{}}, fakeClient)
+		mgr.WithConditionManagement()
+
+		// Act
+		_, err := mgr.Reconcile(ctx, request, instance)
+
+		assert.Error(t, err)
+		assert.Equal(t, "failureScenarioSubroutine", err.Error())
 	})
 
 }

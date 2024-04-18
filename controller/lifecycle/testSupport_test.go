@@ -110,16 +110,13 @@ func (c changeStatusSubroutine) Finalizers() []string {
 }
 
 type failureScenarioSubroutine struct {
-	Retry      bool
-	RequeAfter bool
-	Err        bool
+	Retry              bool
+	RequeAfter         bool
+	FinalizeRetry      bool
+	FinalizeRequeAfter bool
 }
 
 func (f failureScenarioSubroutine) Process(_ context.Context, _ RuntimeObject) (controllerruntime.Result, errors.OperatorError) {
-	if f.Err {
-		return controllerruntime.Result{}, errors.NewOperatorError(fmt.Errorf("failureScenarioSubroutine"), true, false)
-	}
-
 	if f.Retry {
 		return controllerruntime.Result{Requeue: true}, nil
 	}
@@ -132,11 +129,19 @@ func (f failureScenarioSubroutine) Process(_ context.Context, _ RuntimeObject) (
 }
 
 func (f failureScenarioSubroutine) Finalize(_ context.Context, _ RuntimeObject) (controllerruntime.Result, errors.OperatorError) {
-	return controllerruntime.Result{}, nil
+	if f.Retry {
+		return controllerruntime.Result{Requeue: true}, nil
+	}
+
+	if f.RequeAfter {
+		return controllerruntime.Result{RequeueAfter: 10 * time.Second}, nil
+	}
+
+	return controllerruntime.Result{}, errors.NewOperatorError(fmt.Errorf("failureScenarioSubroutine"), true, false)
 }
 
 func (f failureScenarioSubroutine) Finalizers() []string {
-	return []string{}
+	return []string{finalizer}
 }
 
 func (c failureScenarioSubroutine) GetName() string {

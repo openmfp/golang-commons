@@ -84,6 +84,17 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 	}
 
 	originalCopy := instance.DeepCopyObject()
+	var conditions []v1.Condition
+	if l.manageConditions {
+		if instanceConditionsObj, ok := instance.(RuntimeObjectConditions); ok {
+			conditions = instanceConditionsObj.GetConditions()
+		} else {
+			err = fmt.Errorf("manageConditions is enabled, but instance does not implement RuntimeObjectConditions interface. This is a programming error")
+			log.Error().Err(err).Msg("Error during reconcile")
+			sentry.CaptureError(err, sentryTags)
+			return ctrl.Result{}, err
+		}
+	}
 
 	if l.spreadReconciles && instance.GetDeletionTimestamp().IsZero() {
 		if instanceStatusObj, ok := instance.(RuntimeObjectSpreadReconcileStatus); ok {
@@ -100,39 +111,24 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 	}
 
 	if l.manageConditions {
-		if instanceConditionsObj, ok := instance.(RuntimeObjectConditions); ok {
-			conditions := instanceConditionsObj.GetConditions()
-			if setUnknownIfNotSet(&conditions) {
-				instanceConditionsObj.SetConditions(conditions)
-			}
-		} else {
-			err = fmt.Errorf("manageConditions is enabled, but instance does not implement RuntimeObjectConditions interface. This is a programming error")
-			log.Error().Err(err).Msg("Error during reconcile")
-			sentry.CaptureError(err, sentryTags)
-			return ctrl.Result{}, err
-		}
+		setUnknownIfNotSet(&conditions)
 	}
 	// Continue with reconciliation
 	for _, subroutine := range l.subroutines {
 		if l.manageConditions {
-			if instanceConditionsObj, ok := instance.(RuntimeObjectConditions); ok {
-				conditions := instanceConditionsObj.GetConditions()
-				if setSubroutineCondition(&conditions, subroutine.GetName(), v1.ConditionUnknown, "The subroutine is being processed", "SubroutineProcessing") {
-					instanceConditionsObj.SetConditions(conditions)
-				}
-			}
+			setSubroutineCondition(&conditions, subroutine.GetName(), v1.ConditionUnknown, "The subroutine is being processed", "SubroutineProcessing")
 		}
 		subResult, err := l.reconcileSubroutine(ctx, instance, subroutine, log, sentryTags)
 		if err != nil {
 			if l.manageConditions {
+				if instance.GetDeletionTimestamp() != nil {
+					setFinalizationCondition(conditions, subroutine, result, err)
+				} else {
+					setSubroutineCondition(&conditions, subroutine.GetName(), v1.ConditionFalse, "The subroutine failed", "SubroutineFailed")
+					setReady(&conditions, v1.ConditionFalse)
+				}
 				if instanceConditionsObj, ok := instance.(RuntimeObjectConditions); ok {
-					conditions := instanceConditionsObj.GetConditions()
-					if setSubroutineCondition(&conditions, subroutine.GetName(), v1.ConditionFalse, "The subroutine failed", "SubroutineFailed") {
-						instanceConditionsObj.SetConditions(conditions)
-					}
-					if setReady(&conditions, v1.ConditionFalse) {
-						instanceConditionsObj.SetConditions(conditions)
-					}
+					instanceConditionsObj.SetConditions(conditions)
 				}
 			}
 			_ = l.updateStatus(ctx, originalCopy, instance, log, sentryTags)
@@ -147,14 +143,9 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 			}
 		}
 		if l.manageConditions {
-			if instanceConditionsObj, ok := instance.(RuntimeObjectConditions); ok {
-				conditions := instanceConditionsObj.GetConditions()
-				if !subResult.Requeue && subResult.RequeueAfter == 0 {
-					// Subroutine was successful
-					if setSubroutineCondition(&conditions, subroutine.GetName(), v1.ConditionTrue, "The subroutine was successful", "SubroutineSuccess") {
-						instanceConditionsObj.SetConditions(conditions)
-					}
-				}
+			if !subResult.Requeue && subResult.RequeueAfter == 0 {
+				// Subroutine was successful
+				setSubroutineCondition(&conditions, subroutine.GetName(), v1.ConditionTrue, "The subroutine was successful", "SubroutineSuccess")
 			}
 		}
 	}
@@ -169,21 +160,17 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 		}
 
 		if l.manageConditions {
-			if instanceConditionsObj, ok := instance.(RuntimeObjectConditions); ok {
-				conditions := instanceConditionsObj.GetConditions()
-				if setReady(&conditions, v1.ConditionTrue) {
-					instanceConditionsObj.SetConditions(conditions)
-				}
-			}
+			setReady(&conditions, v1.ConditionTrue)
 		}
 	} else {
 		if l.manageConditions {
-			if instanceConditionsObj, ok := instance.(RuntimeObjectConditions); ok {
-				conditions := instanceConditionsObj.GetConditions()
-				if setReady(&conditions, v1.ConditionFalse) {
-					instanceConditionsObj.SetConditions(conditions)
-				}
-			}
+			setReady(&conditions, v1.ConditionFalse)
+		}
+	}
+
+	if l.manageConditions {
+		if instanceConditionsObj, ok := instance.(RuntimeObjectConditions); ok {
+			instanceConditionsObj.SetConditions(conditions)
 		}
 	}
 
