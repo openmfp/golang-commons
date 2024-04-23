@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	DebugLabel = "debug.openmfp.com"
+	DebugLabel = "debug.openmfp.io"
 )
 
 // DebugResourcesBehaviourPredicate returns whether a resource should be digested
