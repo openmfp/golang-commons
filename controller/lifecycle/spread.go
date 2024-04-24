@@ -58,11 +58,12 @@ func removeRefreshLabelIfExists(instance RuntimeObject) bool {
 	return keyCount != len(instance.GetLabels())
 }
 
-func toRuntimeObjectSpreadReconcileStatusInterface(instance RuntimeObject) (RuntimeObjectSpreadReconcileStatus, error) {
+func toRuntimeObjectSpreadReconcileStatusInterface(instance RuntimeObject, log *logger.Logger) (RuntimeObjectSpreadReconcileStatus, error) {
 	if obj, ok := instance.(RuntimeObjectSpreadReconcileStatus); ok {
 		return obj, nil
 	}
 	err := fmt.Errorf("spreadReconciles is enabled, but instance does not implement RuntimeObjectSpreadReconcileStatus interface. This is a programming error")
+	log.Error().Err(err).Msg("Failed to cast instance to RuntimeObjectSpreadReconcileStatus")
 	sentry.CaptureError(err, nil)
 	return nil, err
 }

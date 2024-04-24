@@ -15,6 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/openmfp/golang-commons/controller/testSupport"
+	"github.com/openmfp/golang-commons/logger"
 	"github.com/openmfp/golang-commons/logger/testlogger"
 	"github.com/openmfp/golang-commons/sentry"
 )
@@ -435,6 +436,8 @@ func TestLifecycle(t *testing.T) {
 		// Arrange
 		instance := &testSupport.TestApiObject{}
 		fakeClient := testSupport.CreateFakeClient(t, instance)
+		log, err := logger.New(logger.DefaultConfig())
+		assert.NoError(t, err)
 		m, err := manager.New(&rest.Config{}, manager.Options{
 			Scheme: fakeClient.Scheme(),
 		})
@@ -446,7 +449,7 @@ func TestLifecycle(t *testing.T) {
 		}
 
 		// Act
-		err = lm.SetupWithManager(m, 0, "testReconciler", instance, "test", tr)
+		err = lm.SetupWithManager(m, 0, "testReconciler", instance, "test", tr, log)
 
 		// Assert
 		assert.NoError(t, err)

@@ -88,7 +88,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 	inDeletion := instance.GetDeletionTimestamp() != nil
 	var conditions []v1.Condition
 	if l.manageConditions {
-		instanceConditionsObj, err := toRuntimeObjectConditionsInterface(instance)
+		instanceConditionsObj, err := toRuntimeObjectConditionsInterface(instance, log)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -96,7 +96,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 	}
 
 	if l.spreadReconciles && instance.GetDeletionTimestamp().IsZero() {
-		instanceStatusObj, err := toRuntimeObjectSpreadReconcileStatusInterface(instance)
+		instanceStatusObj, err := toRuntimeObjectSpreadReconcileStatusInterface(instance, log)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -127,7 +127,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 			if l.manageConditions {
 				setSubroutineCondition(&conditions, subroutine, result, err, inDeletion, log)
 				setInstanceConditionReady(&conditions, v1.ConditionFalse)
-				instanceConditionsObj, err := toRuntimeObjectConditionsInterface(instance)
+				instanceConditionsObj, err := toRuntimeObjectConditionsInterface(instance, log)
 				if err != nil {
 					return ctrl.Result{}, err
 				}
@@ -154,7 +154,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 	if !result.Requeue && result.RequeueAfter == 0 {
 		// Reconciliation was successful
 		if l.spreadReconciles && instance.GetDeletionTimestamp().IsZero() {
-			instanceStatusObj, err := toRuntimeObjectSpreadReconcileStatusInterface(instance)
+			instanceStatusObj, err := toRuntimeObjectSpreadReconcileStatusInterface(instance, log)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
@@ -172,7 +172,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 	}
 
 	if l.manageConditions {
-		instanceConditionsObj, err := toRuntimeObjectConditionsInterface(instance)
+		instanceConditionsObj, err := toRuntimeObjectConditionsInterface(instance, log)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -228,6 +228,7 @@ func (l *LifecycleManager) updateStatus(ctx context.Context, original runtime.Ob
 	err = l.client.Status().Update(ctx, current)
 	if err != nil {
 		if !kerrors.IsConflict(err) {
+			log.Error().Err(err).Msg("cannot update status, kubernetes client error")
 			sentry.CaptureError(err, sentryTags, sentry.Extras{"message": "Updating of instance status failed"})
 		}
 		log.Error().Err(err).Msg("cannot update reconciliation Conditions, kubernetes client error")
@@ -276,6 +277,7 @@ func (l *LifecycleManager) reconcileSubroutine(ctx context.Context, instance Run
 		}
 	}
 	if err != nil && err.Sentry() {
+		log.Error().Err(err.Err()).Msg("subroutine ended with error")
 		sentry.CaptureError(err.Err(), sentryTags)
 	}
 	if err != nil && err.Retry() {
@@ -323,16 +325,16 @@ func (l *LifecycleManager) addFinalizerIfNeeded(ctx context.Context, instance Ru
 	return nil
 }
 
-func (l *LifecycleManager) SetupWithManager(mgr ctrl.Manager, maxReconciles int, reconcilerName string, instance RuntimeObject, debugLabelValue string, r reconcile.Reconciler, eventPredicates ...predicate.Predicate) error {
+func (l *LifecycleManager) SetupWithManager(mgr ctrl.Manager, maxReconciles int, reconcilerName string, instance RuntimeObject, debugLabelValue string, r reconcile.Reconciler, log *logger.Logger, eventPredicates ...predicate.Predicate) error {
 	if l.manageConditions {
-		_, err := toRuntimeObjectConditionsInterface(instance)
+		_, err := toRuntimeObjectConditionsInterface(instance, log)
 		if err != nil {
 			return err
 		}
 	}
 
 	if l.spreadReconciles {
-		_, err := toRuntimeObjectSpreadReconcileStatusInterface(instance)
+		_, err := toRuntimeObjectSpreadReconcileStatusInterface(instance, log)
 		if err != nil {
 			return err
 		}

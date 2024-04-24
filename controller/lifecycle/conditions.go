@@ -113,11 +113,12 @@ func setSubroutineCondition(conditions *[]metav1.Condition, subroutine Subroutin
 	return changed
 }
 
-func toRuntimeObjectConditionsInterface(instance RuntimeObject) (RuntimeObjectConditions, error) {
+func toRuntimeObjectConditionsInterface(instance RuntimeObject, log *logger.Logger) (RuntimeObjectConditions, error) {
 	if obj, ok := instance.(RuntimeObjectConditions); ok {
 		return obj, nil
 	}
 	err := fmt.Errorf("manageConditions is enabled, but instance does not implement RuntimeObjectConditions interface. This is a programming error")
+	log.Error().Err(err).Msg("instance does not implement RuntimeObjectConditions interface")
 	sentry.CaptureError(err, nil)
 	return nil, err
 }
