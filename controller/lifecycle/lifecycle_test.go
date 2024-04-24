@@ -734,6 +734,81 @@ func TestLifecycle(t *testing.T) {
 		assert.Equal(t, "failureScenarioSubroutine", err.Error())
 	})
 
+	t.Run("Test Lifecycle setupWithManager /w conditions and expecting no error", func(t *testing.T) {
+		// Arrange
+		instance := &implementConditions{}
+		fakeClient := testSupport.CreateFakeClient(t, instance)
+
+		m, err := manager.New(&rest.Config{}, manager.Options{Scheme: fakeClient.Scheme()})
+		assert.NoError(t, err)
+
+		lm, log := createLifecycleManager([]Subroutine{}, fakeClient)
+		lm = lm.WithConditionManagement()
+		tr := &testReconciler{lifecycleManager: lm}
+
+		// Act
+		err = lm.SetupWithManager(m, 0, "testReconciler", instance, "test", tr, log.Logger)
+
+		// Assert
+		assert.NoError(t, err)
+	})
+
+	t.Run("Test Lifecycle setupWithManager /w conditions and expecting error", func(t *testing.T) {
+		// Arrange
+		instance := &notImplementingSpreadReconciles{}
+		fakeClient := testSupport.CreateFakeClient(t, instance)
+
+		m, err := manager.New(&rest.Config{}, manager.Options{Scheme: fakeClient.Scheme()})
+		assert.NoError(t, err)
+
+		lm, log := createLifecycleManager([]Subroutine{}, fakeClient)
+		lm = lm.WithConditionManagement()
+		tr := &testReconciler{lifecycleManager: lm}
+
+		// Act
+		err = lm.SetupWithManager(m, 0, "testReconciler", instance, "test", tr, log.Logger)
+
+		// Assert
+		assert.Error(t, err)
+	})
+
+	t.Run("Test Lifecycle setupWithManager /w spread and expecting no error", func(t *testing.T) {
+		// Arrange
+		instance := &implementingSpreadReconciles{}
+		fakeClient := testSupport.CreateFakeClient(t, instance)
+
+		m, err := manager.New(&rest.Config{}, manager.Options{Scheme: fakeClient.Scheme()})
+		assert.NoError(t, err)
+
+		lm, log := createLifecycleManager([]Subroutine{}, fakeClient)
+		lm = lm.WithSpreadingReconciles()
+		tr := &testReconciler{lifecycleManager: lm}
+
+		// Act
+		err = lm.SetupWithManager(m, 0, "testReconciler", instance, "test", tr, log.Logger)
+
+		// Assert
+		assert.NoError(t, err)
+	})
+
+	t.Run("Test Lifecycle setupWithManager /w spread and expecting a error", func(t *testing.T) {
+		// Arrange
+		instance := &notImplementingSpreadReconciles{}
+		fakeClient := testSupport.CreateFakeClient(t, instance)
+
+		m, err := manager.New(&rest.Config{}, manager.Options{Scheme: fakeClient.Scheme()})
+		assert.NoError(t, err)
+
+		lm, log := createLifecycleManager([]Subroutine{}, fakeClient)
+		lm = lm.WithSpreadingReconciles()
+		tr := &testReconciler{lifecycleManager: lm}
+
+		// Act
+		err = lm.SetupWithManager(m, 0, "testReconciler", instance, "test", tr, log.Logger)
+
+		// Assert
+		assert.Error(t, err)
+	})
 }
 
 type testReconciler struct {
