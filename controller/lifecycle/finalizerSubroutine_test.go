@@ -10,7 +10,7 @@ import (
 	openMfpErrors "github.com/openmfp/golang-commons/errors"
 )
 
-const finalizerSubroutineFinalizer = "finalizer"
+const subroutineFinalizer = "finalizer"
 
 type finalizerSubroutine struct {
 	client client.Client
@@ -37,6 +37,6 @@ func (c finalizerSubroutine) GetName() string {
 
 func (c finalizerSubroutine) Finalizers() []string {
 	return []string{
-		finalizerSubroutineFinalizer,
+		subroutineFinalizer,
 	}
 }

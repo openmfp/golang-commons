@@ -76,7 +76,7 @@ func TestLifecycle(t *testing.T) {
 	t.Run("Lifecycle with a finalizer - finalization", func(t *testing.T) {
 		// Arrange
 		now := &metav1.Time{Time: time.Now()}
-		finalizers := []string{finalizerSubroutineFinalizer}
+		finalizers := []string{subroutineFinalizer}
 		instance := &testSupport.TestApiObject{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:              name,
@@ -131,7 +131,7 @@ func TestLifecycle(t *testing.T) {
 	t.Run("Lifecycle with a finalizer - failing finalization subroutine", func(t *testing.T) {
 		// Arrange
 		now := &metav1.Time{Time: time.Now()}
-		finalizers := []string{finalizerSubroutineFinalizer}
+		finalizers := []string{subroutineFinalizer}
 		instance := &testSupport.TestApiObject{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:              name,

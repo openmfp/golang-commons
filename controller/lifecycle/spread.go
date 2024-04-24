@@ -1,13 +1,15 @@
 package lifecycle
 
 import (
+	"fmt"
 	"math/rand"
 	"time"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/openmfp/golang-commons/logger"
+	"github.com/openmfp/golang-commons/sentry"
 )
 
 const SpreadReconcileRefreshLabel = "openmfp.io/refresh-reconcile"
@@ -54,4 +56,13 @@ func removeRefreshLabelIfExists(instance RuntimeObject) bool {
 	keyCount := len(instance.GetLabels())
 	delete(instance.GetLabels(), SpreadReconcileRefreshLabel)
 	return keyCount != len(instance.GetLabels())
+}
+
+func toRuntimeObjectSpreadReconcileStatusInterface(instance RuntimeObject) (RuntimeObjectSpreadReconcileStatus, error) {
+	if obj, ok := instance.(RuntimeObjectSpreadReconcileStatus); ok {
+		return obj, nil
+	}
+	err := fmt.Errorf("spreadReconciles is enabled, but instance does not implement RuntimeObjectSpreadReconcileStatus interface. This is a programming error")
+	sentry.CaptureError(err, nil)
+	return nil, err
 }

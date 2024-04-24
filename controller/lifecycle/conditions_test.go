@@ -6,10 +6,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 
 	"github.com/openmfp/golang-commons/controller/testSupport"
+	"github.com/openmfp/golang-commons/logger"
 )
 
 // Test LifecycleManager.WithConditionManagement
@@ -85,13 +87,15 @@ func TestSetUnknown(t *testing.T) {
 }
 
 func TestSetSubroutineConditionToUnknownIfNotSet(t *testing.T) {
+	log, err := logger.New(logger.DefaultConfig())
+	require.NoError(t, err)
 
 	t.Run("TestSetSubroutineConditionToUnknownIfNotSet with empty array", func(t *testing.T) {
 		// Given
 		condition := []metav1.Condition{}
 
 		// When
-		setSubroutineConditionToUnknownIfNotSet(&condition, changeStatusSubroutine{}, false)
+		setSubroutineConditionToUnknownIfNotSet(&condition, changeStatusSubroutine{}, false, log)
 
 		// Then
 		assert.Equal(t, 1, len(condition))
@@ -105,7 +109,7 @@ func TestSetSubroutineConditionToUnknownIfNotSet(t *testing.T) {
 		}
 
 		// When
-		setSubroutineConditionToUnknownIfNotSet(&condition, changeStatusSubroutine{}, false)
+		setSubroutineConditionToUnknownIfNotSet(&condition, changeStatusSubroutine{}, false, log)
 
 		// Then
 		assert.Equal(t, 2, len(condition))
@@ -121,7 +125,7 @@ func TestSetSubroutineConditionToUnknownIfNotSet(t *testing.T) {
 		}
 
 		// When
-		setSubroutineConditionToUnknownIfNotSet(&condition, subroutine, false)
+		setSubroutineConditionToUnknownIfNotSet(&condition, subroutine, false, log)
 
 		// Then
 		assert.Equal(t, 2, len(condition))
@@ -130,6 +134,8 @@ func TestSetSubroutineConditionToUnknownIfNotSet(t *testing.T) {
 }
 
 func TestSubroutineCondition(t *testing.T) {
+	log, err := logger.New(logger.DefaultConfig())
+	require.NoError(t, err)
 
 	// Add a test case to set a subroutine condition to ready if it was successfull
 	t.Run("TestSetSubroutineConditionReady", func(t *testing.T) {
@@ -138,7 +144,7 @@ func TestSubroutineCondition(t *testing.T) {
 		subroutine := changeStatusSubroutine{}
 
 		// When
-		setSubroutineCondition(&condition, subroutine, controllerruntime.Result{}, nil, false)
+		setSubroutineCondition(&condition, subroutine, controllerruntime.Result{}, nil, false, log)
 
 		// Then
 		assert.Equal(t, 1, len(condition))
@@ -152,7 +158,7 @@ func TestSubroutineCondition(t *testing.T) {
 		subroutine := changeStatusSubroutine{}
 
 		// When
-		setSubroutineCondition(&condition, subroutine, controllerruntime.Result{Requeue: true}, nil, false)
+		setSubroutineCondition(&condition, subroutine, controllerruntime.Result{Requeue: true}, nil, false, log)
 
 		// Then
 		assert.Equal(t, 1, len(condition))
@@ -166,7 +172,7 @@ func TestSubroutineCondition(t *testing.T) {
 		subroutine := changeStatusSubroutine{}
 
 		// When
-		setSubroutineCondition(&condition, subroutine, controllerruntime.Result{}, errors.New("failed"), false)
+		setSubroutineCondition(&condition, subroutine, controllerruntime.Result{}, errors.New("failed"), false, log)
 
 		// Then
 		assert.Equal(t, 1, len(condition))
@@ -180,7 +186,7 @@ func TestSubroutineCondition(t *testing.T) {
 		subroutine := changeStatusSubroutine{}
 
 		// When
-		setSubroutineCondition(&condition, subroutine, controllerruntime.Result{}, nil, true)
+		setSubroutineCondition(&condition, subroutine, controllerruntime.Result{}, nil, true, log)
 
 		// Then
 		assert.Equal(t, 1, len(condition))
@@ -194,7 +200,7 @@ func TestSubroutineCondition(t *testing.T) {
 		subroutine := changeStatusSubroutine{}
 
 		// When
-		setSubroutineCondition(&condition, subroutine, controllerruntime.Result{Requeue: true}, nil, true)
+		setSubroutineCondition(&condition, subroutine, controllerruntime.Result{Requeue: true}, nil, true, log)
 
 		// Then
 		assert.Equal(t, 1, len(condition))
@@ -208,7 +214,7 @@ func TestSubroutineCondition(t *testing.T) {
 		subroutine := changeStatusSubroutine{}
 
 		// When
-		setSubroutineCondition(&condition, subroutine, controllerruntime.Result{}, errors.New("failed"), true)
+		setSubroutineCondition(&condition, subroutine, controllerruntime.Result{}, errors.New("failed"), true, log)
 
 		// Then
 		assert.Equal(t, 1, len(condition))

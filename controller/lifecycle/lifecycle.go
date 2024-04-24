@@ -88,27 +88,21 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 	inDeletion := instance.GetDeletionTimestamp() != nil
 	var conditions []v1.Condition
 	if l.manageConditions {
-		if instanceConditionsObj, ok := instance.(RuntimeObjectConditions); ok {
-			conditions = instanceConditionsObj.GetConditions()
-		} else {
-			err = fmt.Errorf("manageConditions is enabled, but instance does not implement RuntimeObjectConditions interface. This is a programming error")
-			log.Error().Err(err).Msg("Error during reconcile")
-			sentry.CaptureError(err, sentryTags)
+		instanceConditionsObj, err := toRuntimeObjectConditionsInterface(instance)
+		if err != nil {
 			return ctrl.Result{}, err
 		}
+		conditions = instanceConditionsObj.GetConditions()
 	}
 
 	if l.spreadReconciles && instance.GetDeletionTimestamp().IsZero() {
-		if instanceStatusObj, ok := instance.(RuntimeObjectSpreadReconcileStatus); ok {
-			if !slices.Contains(maps.Keys(instance.GetLabels()), SpreadReconcileRefreshLabel) &&
-				(instance.GetGeneration() == instanceStatusObj.GetObservedGeneration() || v1.Now().UTC().Before(instanceStatusObj.GetNextReconcileTime().Time.UTC())) {
-				return onNextReconcile(instanceStatusObj, log)
-			}
-		} else {
-			err = fmt.Errorf("spreadReconciles is enabled, but instance does not implement RuntimeObjectSpreadReconcileStatus interface. This is a programming error")
-			log.Error().Err(err).Msg("Error during reconcile")
-			sentry.CaptureError(err, sentryTags)
+		instanceStatusObj, err := toRuntimeObjectSpreadReconcileStatusInterface(instance)
+		if err != nil {
 			return ctrl.Result{}, err
+		}
+		if !slices.Contains(maps.Keys(instance.GetLabels()), SpreadReconcileRefreshLabel) &&
+			(instance.GetGeneration() == instanceStatusObj.GetObservedGeneration() || v1.Now().UTC().Before(instanceStatusObj.GetNextReconcileTime().Time.UTC())) {
+			return onNextReconcile(instanceStatusObj, log)
 		}
 	}
 
@@ -126,16 +120,18 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 	// Continue with reconciliation
 	for _, subroutine := range subroutines {
 		if l.manageConditions {
-			setSubroutineConditionToUnknownIfNotSet(&conditions, subroutine, inDeletion)
+			setSubroutineConditionToUnknownIfNotSet(&conditions, subroutine, inDeletion, log)
 		}
 		subResult, err := l.reconcileSubroutine(ctx, instance, subroutine, log, sentryTags)
 		if err != nil {
 			if l.manageConditions {
-				setSubroutineCondition(&conditions, subroutine, result, err, inDeletion)
+				setSubroutineCondition(&conditions, subroutine, result, err, inDeletion, log)
 				setInstanceConditionReady(&conditions, v1.ConditionFalse)
-				if instanceConditionsObj, ok := instance.(RuntimeObjectConditions); ok {
-					instanceConditionsObj.SetConditions(conditions)
+				instanceConditionsObj, err := toRuntimeObjectConditionsInterface(instance)
+				if err != nil {
+					return ctrl.Result{}, err
 				}
+				instanceConditionsObj.SetConditions(conditions)
 			}
 			_ = l.updateStatus(ctx, originalCopy, instance, log, sentryTags)
 			return subResult, err
@@ -150,7 +146,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 		}
 		if l.manageConditions {
 			if !subResult.Requeue && subResult.RequeueAfter == 0 {
-				setSubroutineCondition(&conditions, subroutine, subResult, err, inDeletion)
+				setSubroutineCondition(&conditions, subroutine, subResult, err, inDeletion, log)
 			}
 		}
 	}
@@ -158,10 +154,12 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 	if !result.Requeue && result.RequeueAfter == 0 {
 		// Reconciliation was successful
 		if l.spreadReconciles && instance.GetDeletionTimestamp().IsZero() {
-			if instanceStatusObj, ok := instance.(RuntimeObjectSpreadReconcileStatus); ok {
-				setNextReconcileTime(instanceStatusObj, log)
-				updateObservedGeneration(instanceStatusObj, log)
+			instanceStatusObj, err := toRuntimeObjectSpreadReconcileStatusInterface(instance)
+			if err != nil {
+				return ctrl.Result{}, err
 			}
+			setNextReconcileTime(instanceStatusObj, log)
+			updateObservedGeneration(instanceStatusObj, log)
 		}
 
 		if l.manageConditions {
@@ -174,9 +172,11 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 	}
 
 	if l.manageConditions {
-		if instanceConditionsObj, ok := instance.(RuntimeObjectConditions); ok {
-			instanceConditionsObj.SetConditions(conditions)
+		instanceConditionsObj, err := toRuntimeObjectConditionsInterface(instance)
+		if err != nil {
+			return ctrl.Result{}, err
 		}
+		instanceConditionsObj.SetConditions(conditions)
 	}
 
 	err = l.updateStatus(ctx, originalCopy, instance, log, sentryTags)
@@ -324,6 +324,20 @@ func (l *LifecycleManager) addFinalizerIfNeeded(ctx context.Context, instance Ru
 }
 
 func (l *LifecycleManager) SetupWithManager(mgr ctrl.Manager, maxReconciles int, reconcilerName string, instance RuntimeObject, debugLabelValue string, r reconcile.Reconciler, eventPredicates ...predicate.Predicate) error {
+	if l.manageConditions {
+		_, err := toRuntimeObjectConditionsInterface(instance)
+		if err != nil {
+			return err
+		}
+	}
+
+	if l.spreadReconciles {
+		_, err := toRuntimeObjectSpreadReconcileStatusInterface(instance)
+		if err != nil {
+			return err
+		}
+	}
+
 	eventPredicates = append([]predicate.Predicate{filter.DebugResourcesBehaviourPredicate(debugLabelValue)}, eventPredicates...)
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(reconcilerName).
