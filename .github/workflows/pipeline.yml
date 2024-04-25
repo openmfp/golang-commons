@@ -8,4 +8,6 @@ jobs:
       cancel-in-progress: true
     uses: openmfp/gha/.github/workflows/pipeline-golang-module.yml@main
     secrets: inherit
+    with:
+      useLocalCoverageConfig: true
 
