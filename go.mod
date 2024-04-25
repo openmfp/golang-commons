@@ -57,6 +57,8 @@ require (
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/sosodev/duration v1.2.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/stretchr/objx v0.5.2 // indirect
+	github.com/vektra/mockery/v2 v2.42.3 // indirect
 	go.opentelemetry.io/otel/metric v1.24.0 // indirect
 	go.opentelemetry.io/otel/trace v1.24.0 // indirect
 	golang.org/x/crypto v0.21.0 // indirect

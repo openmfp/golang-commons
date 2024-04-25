@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
@@ -14,6 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
+	"github.com/openmfp/golang-commons/controller/lifecycle/mocks"
 	"github.com/openmfp/golang-commons/controller/testSupport"
 	"github.com/openmfp/golang-commons/logger"
 	"github.com/openmfp/golang-commons/logger/testlogger"
@@ -572,6 +575,40 @@ func TestLifecycle(t *testing.T) {
 		assert.Equal(t, "The subroutine is complete", instance.Status.Conditions[1].Message)
 	})
 
+	t.Run("Lifecycle with manage conditions reconciles with subroutine failing Status update", func(t *testing.T) {
+		// Arrange
+		instance := &implementConditions{
+			testSupport.TestApiObject{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       name,
+					Namespace:  namespace,
+					Generation: 1,
+				},
+				Status: testSupport.TestStatus{},
+			},
+		}
+
+		fakeClient := testSupport.CreateFakeClient(t, instance)
+
+		mgr, _ := createLifecycleManager([]Subroutine{
+			changeStatusSubroutine{
+				client: fakeClient,
+			}}, fakeClient)
+		mgr.WithConditionManagement()
+
+		// Act
+		_, err := mgr.Reconcile(ctx, request, instance)
+
+		assert.NoError(t, err)
+		assert.Len(t, instance.Status.Conditions, 2)
+		assert.Equal(t, ConditionReady, instance.Status.Conditions[0].Type)
+		assert.Equal(t, metav1.ConditionTrue, instance.Status.Conditions[0].Status)
+		assert.Equal(t, "The resource is ready", instance.Status.Conditions[0].Message)
+		assert.Equal(t, "changeStatus_Ready", instance.Status.Conditions[1].Type)
+		assert.Equal(t, metav1.ConditionTrue, instance.Status.Conditions[1].Status)
+		assert.Equal(t, "The subroutine is complete", instance.Status.Conditions[1].Message)
+	})
+
 	t.Run("Lifecycle with manage conditions finalizes with multiple subroutines partially succeeding", func(t *testing.T) {
 		// Arrange
 		instance := &implementConditions{
@@ -808,6 +845,78 @@ func TestLifecycle(t *testing.T) {
 
 		// Assert
 		assert.Error(t, err)
+	})
+}
+
+func TestUpdateStatus(t *testing.T) {
+	clientMock := new(mocks.Client)
+	subresourceClient := new(mocks.SubResourceClient)
+
+	logcfg := logger.DefaultConfig()
+	logcfg.NoJSON = true
+	log, err := logger.New(logcfg)
+	assert.NoError(t, err)
+
+	t.Run("Test UpdateStatus with no changes", func(t *testing.T) {
+		original := &implementingSpreadReconciles{
+			testSupport.TestApiObject{
+				Status: testSupport.TestStatus{
+					Some: "string",
+				},
+			}}
+
+		// When
+		err := updateStatus(context.Background(), clientMock, original, original, log, nil)
+
+		// Then
+		assert.NoError(t, err)
+	})
+
+	t.Run("Test UpdateStatus with update error", func(t *testing.T) {
+		original := &implementingSpreadReconciles{
+			testSupport.TestApiObject{
+				Status: testSupport.TestStatus{
+					Some: "string",
+				},
+			}}
+		current := &implementingSpreadReconciles{
+			testSupport.TestApiObject{
+				Status: testSupport.TestStatus{
+					Some: "string1",
+				},
+			}}
+
+		clientMock.EXPECT().Status().Return(subresourceClient)
+		subresourceClient.EXPECT().Update(mock.Anything, mock.Anything, mock.Anything).
+			Return(errors.NewBadRequest("internal error"))
+
+		// When
+		err := updateStatus(context.Background(), clientMock, original, current, log, nil)
+
+		// Then
+		assert.Error(t, err)
+		assert.Equal(t, "internal error", err.Error())
+	})
+
+	t.Run("Test UpdateStatus with no status object (original)", func(t *testing.T) {
+		original := &testSupport.TestNoStatusApiObject{}
+		current := &implementConditions{}
+		// When
+		err := updateStatus(context.Background(), clientMock, original, current, log, nil)
+
+		// Then
+		assert.Error(t, err)
+		assert.Equal(t, "status field not found in current object", err.Error())
+	})
+	t.Run("Test UpdateStatus with no status object (current)", func(t *testing.T) {
+		original := &implementConditions{}
+		current := &testSupport.TestNoStatusApiObject{}
+		// When
+		err := updateStatus(context.Background(), clientMock, original, current, log, nil)
+
+		// Then
+		assert.Error(t, err)
+		assert.Equal(t, "status field not found in current object", err.Error())
 	})
 }
 

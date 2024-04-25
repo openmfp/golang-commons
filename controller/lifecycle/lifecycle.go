@@ -133,7 +133,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 				}
 				instanceConditionsObj.SetConditions(conditions)
 			}
-			_ = l.updateStatus(ctx, originalCopy, instance, log, sentryTags)
+			_ = updateStatus(ctx, l.client, originalCopy, instance, log, sentryTags)
 			return subResult, err
 		}
 		if subResult.Requeue {
@@ -179,7 +179,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 		instanceConditionsObj.SetConditions(conditions)
 	}
 
-	err = l.updateStatus(ctx, originalCopy, instance, log, sentryTags)
+	err = updateStatus(ctx, l.client, originalCopy, instance, log, sentryTags)
 	if err != nil {
 		return result, err
 	}
@@ -198,7 +198,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 	return result, nil
 }
 
-func (l *LifecycleManager) updateStatus(ctx context.Context, original runtime.Object, current RuntimeObject, log *logger.Logger, sentryTags sentry.Tags) error {
+func updateStatus(ctx context.Context, cl client.Client, original runtime.Object, current RuntimeObject, log *logger.Logger, sentryTags sentry.Tags) error {
 
 	currentUn, err := runtime.DefaultUnstructuredConverter.ToUnstructured(current)
 	if err != nil {
@@ -211,12 +211,19 @@ func (l *LifecycleManager) updateStatus(ctx context.Context, original runtime.Ob
 	}
 
 	currentStatus, hasField, err := unstructured.NestedFieldCopy(currentUn, "status")
-	if !hasField || err != nil {
+	if err != nil {
 		return err
 	}
+	if !hasField {
+		return fmt.Errorf("status field not found in current object")
+	}
+
 	originalStatus, hasField, err := unstructured.NestedFieldCopy(originalUn, "status")
-	if !hasField || err != nil {
+	if err != nil {
 		return err
+	}
+	if !hasField {
+		return fmt.Errorf("status field not found in current object")
 	}
 
 	if equality.Semantic.DeepEqual(currentStatus, originalStatus) {
@@ -225,7 +232,7 @@ func (l *LifecycleManager) updateStatus(ctx context.Context, original runtime.Ob
 	}
 
 	log.Info().Msg("updating resource status")
-	err = l.client.Status().Update(ctx, current)
+	err = cl.Status().Update(ctx, current)
 	if err != nil {
 		if !kerrors.IsConflict(err) {
 			log.Error().Err(err).Msg("cannot update status, kubernetes client error")
