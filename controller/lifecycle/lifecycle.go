@@ -39,6 +39,8 @@ type LifecycleManager struct {
 type RuntimeObject interface {
 	runtime.Object
 	v1.Object
+	GetSpec() interface{}
+	GetStatus() interface{}
 }
 
 type Subroutine interface {
@@ -49,7 +51,6 @@ type Subroutine interface {
 }
 
 func NewLifecycleManager(log *logger.Logger, operatorName string, controllerName string, client client.Client, subroutines []Subroutine) *LifecycleManager {
-
 	log = log.MustChildLoggerWithAttributes("operator", operatorName, "controller", controllerName)
 	return &LifecycleManager{
 		log:              log,
