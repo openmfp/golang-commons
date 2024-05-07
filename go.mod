@@ -3,7 +3,7 @@ module github.com/openmfp/golang-commons
 go 1.22.0
 
 require (
-	github.com/99designs/gqlgen v0.17.44
+	github.com/99designs/gqlgen v0.17.45
 	github.com/getsentry/sentry-go v0.27.0
 	github.com/go-logr/logr v1.4.1
 	github.com/go-logr/zerologr v1.2.3
