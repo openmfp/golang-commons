@@ -1,3 +1,4 @@
 
 # common output file extension from code coverage
 *.out
+.idea
