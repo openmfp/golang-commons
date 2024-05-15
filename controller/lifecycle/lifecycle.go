@@ -100,8 +100,12 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-		if !slices.Contains(maps.Keys(instance.GetLabels()), SpreadReconcileRefreshLabel) &&
-			(instance.GetGeneration() == instanceStatusObj.GetObservedGeneration() || v1.Now().UTC().Before(instanceStatusObj.GetNextReconcileTime().Time.UTC())) {
+		generationIsDifferent := instance.GetGeneration() != instanceStatusObj.GetObservedGeneration()
+		isAfterNextReconcileTime := v1.Now().UTC().After(instanceStatusObj.GetNextReconcileTime().Time.UTC())
+		refreshRequested := slices.Contains(maps.Keys(instance.GetLabels()), SpreadReconcileRefreshLabel)
+
+		reconcileRequired := generationIsDifferent || isAfterNextReconcileTime || refreshRequested
+		if !reconcileRequired {
 			return onNextReconcile(instanceStatusObj, log)
 		}
 	}

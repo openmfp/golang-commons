@@ -296,6 +296,7 @@ func TestLifecycle(t *testing.T) {
 
 	t.Run("Lifecycle with spread reconciles skips if the generation is the same", func(t *testing.T) {
 		// Arrange
+		nextReconcileTime := metav1.NewTime(time.Now().Add(1 * time.Hour))
 		instance := &implementingSpreadReconciles{
 			testSupport.TestApiObject{
 				ObjectMeta: metav1.ObjectMeta{
@@ -306,6 +307,7 @@ func TestLifecycle(t *testing.T) {
 				Status: testSupport.TestStatus{
 					Some:               "string",
 					ObservedGeneration: 1,
+					NextReconcileTime:  nextReconcileTime,
 				},
 			},
 		}
