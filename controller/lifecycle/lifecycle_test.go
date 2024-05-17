@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -325,7 +326,7 @@ func TestLifecycle(t *testing.T) {
 		assert.GreaterOrEqual(t, 12*time.Hour, result.RequeueAfter)
 	})
 
-	t.Run("Lifecycle with spread reconciles and processing fails", func(t *testing.T) {
+	t.Run("Lifecycle with spread reconciles and processing fails (no-retry)", func(t *testing.T) {
 		// Arrange
 		instance := &implementingSpreadReconciles{
 			testSupport.TestApiObject{
@@ -344,6 +345,34 @@ func TestLifecycle(t *testing.T) {
 		fakeClient := testSupport.CreateFakeClient(t, instance)
 
 		mgr, _ := createLifecycleManager([]Subroutine{failureScenarioSubroutine{Retry: false, RequeAfter: false}}, fakeClient)
+		mgr.WithSpreadingReconciles()
+
+		// Act
+		_, err := mgr.Reconcile(ctx, request, instance)
+
+		assert.NoError(t, err)
+		assert.Equal(t, int64(1), instance.Status.ObservedGeneration)
+	})
+
+	t.Run("Lifecycle with spread reconciles and processing fails (retry)", func(t *testing.T) {
+		// Arrange
+		instance := &implementingSpreadReconciles{
+			testSupport.TestApiObject{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       name,
+					Namespace:  namespace,
+					Generation: 1,
+				},
+				Status: testSupport.TestStatus{
+					Some:               "string",
+					ObservedGeneration: 0,
+				},
+			},
+		}
+
+		fakeClient := testSupport.CreateFakeClient(t, instance)
+
+		mgr, _ := createLifecycleManager([]Subroutine{failureScenarioSubroutine{Retry: true, RequeAfter: false}}, fakeClient)
 		mgr.WithSpreadingReconciles()
 
 		// Act
@@ -377,7 +406,7 @@ func TestLifecycle(t *testing.T) {
 		// Act
 		_, err := mgr.Reconcile(ctx, request, instance)
 
-		assert.NoError(t, err)
+		assert.Error(t, err)
 		assert.Equal(t, int64(0), instance.Status.ObservedGeneration)
 	})
 
@@ -432,9 +461,9 @@ func TestLifecycle(t *testing.T) {
 		mgr.WithSpreadingReconciles()
 
 		// Act
-		_, err := mgr.Reconcile(ctx, request, instance)
-
-		assert.Errorf(t, err, "SpreadReconciles is enabled, but instance does not implement RuntimeObjectSpreadReconcileStatus interface. This is a programming error.")
+		assert.Panics(t, func() {
+			_, _ = mgr.Reconcile(ctx, request, instance)
+		})
 	})
 
 	t.Run("Should setup with manager", func(t *testing.T) {
@@ -458,6 +487,30 @@ func TestLifecycle(t *testing.T) {
 
 		// Assert
 		assert.NoError(t, err)
+	})
+
+	t.Run("Should setup with manager not implementing interface", func(t *testing.T) {
+		// Arrange
+		instance := &notImplementingSpreadReconciles{}
+		fakeClient := testSupport.CreateFakeClient(t, instance)
+		log, err := logger.New(logger.DefaultConfig())
+		assert.NoError(t, err)
+		m, err := manager.New(&rest.Config{}, manager.Options{
+			Scheme: fakeClient.Scheme(),
+		})
+		assert.NoError(t, err)
+
+		lm, _ := createLifecycleManager([]Subroutine{failureScenarioSubroutine{Retry: false, RequeAfter: true}}, fakeClient)
+		lm.WithSpreadingReconciles()
+		tr := &testReconciler{
+			lifecycleManager: lm,
+		}
+
+		// Act
+		err = lm.SetupWithManager(m, 0, "testReconciler", instance, "test", tr, log)
+
+		// Assert
+		assert.Error(t, err)
 	})
 
 	t.Run("Lifecycle with spread reconciles and refresh label", func(t *testing.T) {
@@ -681,7 +734,7 @@ func TestLifecycle(t *testing.T) {
 		assert.Equal(t, "The subroutine finalization is processing", instance.Status.Conditions[1].Message)
 	})
 
-	t.Run("Lifecycle with manage conditions reconciles with Error subroutine", func(t *testing.T) {
+	t.Run("Lifecycle with manage conditions reconciles with Error subroutine (no-retry)", func(t *testing.T) {
 		// Arrange
 		instance := &implementConditions{
 			testSupport.TestApiObject{
@@ -698,6 +751,38 @@ func TestLifecycle(t *testing.T) {
 
 		mgr, _ := createLifecycleManager([]Subroutine{
 			failureScenarioSubroutine{Retry: false, RequeAfter: false}}, fakeClient)
+		mgr.WithConditionManagement()
+
+		// Act
+		_, err := mgr.Reconcile(ctx, request, instance)
+
+		assert.NoError(t, err)
+		assert.Len(t, instance.Status.Conditions, 2)
+		assert.Equal(t, ConditionReady, instance.Status.Conditions[0].Type)
+		assert.Equal(t, metav1.ConditionFalse, instance.Status.Conditions[0].Status)
+		assert.Equal(t, "The resource is not ready", instance.Status.Conditions[0].Message)
+		assert.Equal(t, "failureScenarioSubroutine_Ready", instance.Status.Conditions[1].Type)
+		assert.Equal(t, metav1.ConditionFalse, instance.Status.Conditions[1].Status)
+		assert.Equal(t, "The subroutine has an error: failureScenarioSubroutine", instance.Status.Conditions[1].Message)
+	})
+
+	t.Run("Lifecycle with manage conditions reconciles with Error subroutine (retry)", func(t *testing.T) {
+		// Arrange
+		instance := &implementConditions{
+			testSupport.TestApiObject{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       name,
+					Namespace:  namespace,
+					Generation: 1,
+				},
+				Status: testSupport.TestStatus{},
+			},
+		}
+
+		fakeClient := testSupport.CreateFakeClient(t, instance)
+
+		mgr, _ := createLifecycleManager([]Subroutine{
+			failureScenarioSubroutine{Retry: true, RequeAfter: false}}, fakeClient)
 		mgr.WithConditionManagement()
 
 		// Act
@@ -771,6 +856,65 @@ func TestLifecycle(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Equal(t, "failureScenarioSubroutine", err.Error())
+	})
+
+	t.Run("Lifecycle with spread reconciles and manage conditions and processing fails (retry)", func(t *testing.T) {
+		// Arrange
+		instance := &implementConditionsAndSpreadReconciles{
+			testSupport.TestApiObject{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       name,
+					Namespace:  namespace,
+					Generation: 1,
+				},
+				Status: testSupport.TestStatus{
+					Some:               "string",
+					ObservedGeneration: 0,
+				},
+			},
+		}
+
+		fakeClient := testSupport.CreateFakeClient(t, instance)
+
+		mgr, _ := createLifecycleManager([]Subroutine{failureScenarioSubroutine{Retry: true, RequeAfter: false}}, fakeClient)
+		mgr.WithSpreadingReconciles()
+
+		// Act
+		_, err := mgr.Reconcile(ctx, request, instance)
+
+		assert.Error(t, err)
+		assert.Equal(t, int64(0), instance.Status.ObservedGeneration)
+	})
+
+	t.Run("Lifecycle with spread reconciles and manage conditions and processing fails (no-retry)", func(t *testing.T) {
+		// Arrange
+		instance := &implementConditionsAndSpreadReconciles{
+			testSupport.TestApiObject{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       name,
+					Namespace:  namespace,
+					Generation: 1,
+				},
+				Status: testSupport.TestStatus{
+					Some:               "string",
+					ObservedGeneration: 0,
+				},
+			},
+		}
+
+		fakeClient := testSupport.CreateFakeClient(t, instance)
+
+		mgr, _ := createLifecycleManager([]Subroutine{failureScenarioSubroutine{Retry: false, RequeAfter: false}}, fakeClient)
+		mgr.WithSpreadingReconciles()
+		mgr.WithConditionManagement()
+
+		// Act
+		_, err := mgr.Reconcile(ctx, request, instance)
+
+		assert.NoError(t, err)
+		assert.Equal(t, ConditionReady, instance.Status.Conditions[0].Type)
+		assert.Equal(t, string(v1.ConditionFalse), string(instance.Status.Conditions[0].Status))
+		assert.Equal(t, int64(1), instance.Status.ObservedGeneration)
 	})
 
 	t.Run("Test Lifecycle setupWithManager /w conditions and expecting no error", func(t *testing.T) {

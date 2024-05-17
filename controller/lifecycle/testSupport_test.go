@@ -120,15 +120,11 @@ type failureScenarioSubroutine struct {
 }
 
 func (f failureScenarioSubroutine) Process(_ context.Context, _ RuntimeObject) (controllerruntime.Result, errors.OperatorError) {
-	if f.Retry {
-		return controllerruntime.Result{Requeue: true}, nil
-	}
-
 	if f.RequeAfter {
 		return controllerruntime.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
-	return controllerruntime.Result{}, errors.NewOperatorError(fmt.Errorf("failureScenarioSubroutine"), true, false)
+	return controllerruntime.Result{}, errors.NewOperatorError(fmt.Errorf("failureScenarioSubroutine"), f.Retry, false)
 }
 
 func (f failureScenarioSubroutine) Finalize(_ context.Context, _ RuntimeObject) (controllerruntime.Result, errors.OperatorError) {
@@ -149,4 +145,31 @@ func (f failureScenarioSubroutine) Finalizers() []string {
 
 func (c failureScenarioSubroutine) GetName() string {
 	return "failureScenarioSubroutine"
+}
+
+type implementConditionsAndSpreadReconciles struct {
+	testSupport.TestApiObject `json:",inline"`
+}
+
+func (m *implementConditionsAndSpreadReconciles) GetConditions() []metav1.Condition {
+	return m.Status.Conditions
+}
+func (m *implementConditionsAndSpreadReconciles) SetConditions(conditions []metav1.Condition) {
+	m.Status.Conditions = conditions
+}
+func (m *implementConditionsAndSpreadReconciles) GetGeneration() int64 {
+	return m.Generation
+}
+func (m *implementConditionsAndSpreadReconciles) GetObservedGeneration() int64 {
+	return m.Status.ObservedGeneration
+}
+func (m *implementConditionsAndSpreadReconciles) SetObservedGeneration(g int64) {
+	m.Status.ObservedGeneration = g
+}
+
+func (m *implementConditionsAndSpreadReconciles) GetNextReconcileTime() metav1.Time {
+	return m.Status.NextReconcileTime
+}
+func (m *implementConditionsAndSpreadReconciles) SetNextReconcileTime(time metav1.Time) {
+	m.Status.NextReconcileTime = time
 }
