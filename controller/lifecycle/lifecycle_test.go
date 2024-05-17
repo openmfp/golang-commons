@@ -878,11 +878,17 @@ func TestLifecycle(t *testing.T) {
 
 		mgr, _ := createLifecycleManager([]Subroutine{failureScenarioSubroutine{Retry: true, RequeAfter: false}}, fakeClient)
 		mgr.WithSpreadingReconciles()
+		mgr.WithConditionManagement()
 
 		// Act
 		_, err := mgr.Reconcile(ctx, request, instance)
 
 		assert.Error(t, err)
+		assert.Len(t, instance.Status.Conditions, 2)
+		assert.Equal(t, ConditionReady, instance.Status.Conditions[0].Type)
+		assert.Equal(t, string(v1.ConditionFalse), string(instance.Status.Conditions[0].Status))
+		assert.Equal(t, "failureScenarioSubroutine_Ready", instance.Status.Conditions[1].Type)
+		assert.Equal(t, string(v1.ConditionFalse), string(instance.Status.Conditions[1].Status))
 		assert.Equal(t, int64(0), instance.Status.ObservedGeneration)
 	})
 
@@ -912,8 +918,11 @@ func TestLifecycle(t *testing.T) {
 		_, err := mgr.Reconcile(ctx, request, instance)
 
 		assert.NoError(t, err)
+		assert.Len(t, instance.Status.Conditions, 2)
 		assert.Equal(t, ConditionReady, instance.Status.Conditions[0].Type)
 		assert.Equal(t, string(v1.ConditionFalse), string(instance.Status.Conditions[0].Status))
+		assert.Equal(t, "failureScenarioSubroutine_Ready", instance.Status.Conditions[1].Type)
+		assert.Equal(t, string(v1.ConditionFalse), string(instance.Status.Conditions[1].Status))
 		assert.Equal(t, int64(1), instance.Status.ObservedGeneration)
 	})
 
