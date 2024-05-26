@@ -6,7 +6,6 @@ ignore:
   - 'test/*'
   - 'third_party/*'
   - 'hack/*'
-  - 'config/*'
 
 rules:
   line-length: disable
