@@ -1,0 +1,12 @@
+---
+
+extends: default
+
+ignore:
+  - 'test/*'
+  - 'third_party/*'
+  - 'hack/*'
+
+rules:
+  line-length: disable
+...
