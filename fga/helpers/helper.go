@@ -1,4 +1,4 @@
-package fga
+package helpers
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 
 var cache = expirable.NewLRU[string, string](10, nil, 10*time.Minute)
 
-func GetStoreIDForTenant(ctx context.Context, conn openfgav1.OpenFGAServiceClient, tenantID string) (string, error) {
+func GetStoreIDForTenant(ctx context.Context, client openfgav1.OpenFGAServiceClient, tenantID string) (string, error) {
 
 	cacheKey := "tenant-" + tenantID
 	s, ok := cache.Get(cacheKey)
@@ -22,7 +22,7 @@ func GetStoreIDForTenant(ctx context.Context, conn openfgav1.OpenFGAServiceClien
 		return s, nil
 	}
 
-	res, err := conn.ListStores(ctx, &openfgav1.ListStoresRequest{})
+	res, err := client.ListStores(ctx, &openfgav1.ListStoresRequest{})
 	if err != nil {
 		return "", err
 	}
@@ -57,7 +57,7 @@ func GetModelIDForTenant(ctx context.Context, conn openfgav1.OpenFGAServiceClien
 	}
 
 	if len(res.AuthorizationModels) < 1 {
-		return "", errors.New("no authoroization models in response. Cannot determine proper AuthorizationModelId")
+		return "", errors.New("no authorization models in response. Cannot determine proper AuthorizationModelId")
 	}
 
 	modelID := res.AuthorizationModels[0].Id

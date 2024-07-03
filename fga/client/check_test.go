@@ -18,18 +18,16 @@ func TestOpenFGAClient_Check(t *testing.T) {
 	user := "user"
 
 	tests := []struct {
-		name            string
-		prepareCache    func(client *OpenFGAClient)
-		clientCheckMock func(ctx context.Context, openFGAServiceClientMock *mocks.OpenFGAServiceClient)
-		expectedErr     error
+		name        string
+		setupMock   func(ctx context.Context, client *OpenFGAClient, openFGAServiceClientMock *mocks.OpenFGAServiceClient)
+		expectedErr error
 	}{
 		{
 			name: "Check_OK",
-			prepareCache: func(client *OpenFGAClient) {
+			setupMock: func(ctx context.Context, client *OpenFGAClient, openFGAServiceClientMock *mocks.OpenFGAServiceClient) {
 				client.cache.Set(cacheKeyForStore(tenantId), storeId, ttlcache.DefaultTTL)
 				client.cache.Set(cacheKeyForModel(tenantId), modelId, ttlcache.DefaultTTL)
-			},
-			clientCheckMock: func(ctx context.Context, openFGAServiceClientMock *mocks.OpenFGAServiceClient) {
+
 				openFGAServiceClientMock.On("Check", ctx, &openfgav1.CheckRequest{
 					StoreId:              storeId,
 					AuthorizationModelId: modelId,
@@ -42,22 +40,36 @@ func TestOpenFGAClient_Check(t *testing.T) {
 					Return(&openfgav1.CheckResponse{}, nil)
 			},
 		},
+		{
+			name: "Check_StoreIdError",
+			setupMock: func(ctx context.Context, client *OpenFGAClient, openFGAServiceClientMock *mocks.OpenFGAServiceClient) {
+
+				openFGAServiceClientMock.On("ListStores", ctx, &openfgav1.ListStoresRequest{}).
+					Return(&openfgav1.ListStoresResponse{}, assert.AnError)
+			},
+			expectedErr: assert.AnError,
+		},
+		{
+			name: "Check_ModelIdError",
+			setupMock: func(ctx context.Context, client *OpenFGAClient, openFGAServiceClientMock *mocks.OpenFGAServiceClient) {
+				client.cache.Set(cacheKeyForStore(tenantId), storeId, ttlcache.DefaultTTL)
+
+				openFGAServiceClientMock.On("ReadAuthorizationModels", ctx, &openfgav1.ReadAuthorizationModelsRequest{StoreId: storeId}).
+					Return(&openfgav1.ReadAuthorizationModelsResponse{}, assert.AnError)
+			},
+			expectedErr: assert.AnError,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 			openFGAServiceClientMock := &mocks.OpenFGAServiceClient{}
-
 			client, err := NewOpenFGAClient(openFGAServiceClientMock)
 			assert.NoError(t, err)
 
-			if tt.prepareCache != nil {
-				tt.prepareCache(client)
-			}
-
-			if tt.clientCheckMock != nil {
-				tt.clientCheckMock(ctx, openFGAServiceClientMock)
+			if tt.setupMock != nil {
+				tt.setupMock(ctx, client, openFGAServiceClientMock)
 			}
 
 			_, err = client.Check(ctx, object, relation, user, tenantId)

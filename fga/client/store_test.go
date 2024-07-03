@@ -17,88 +17,109 @@ func TestOpenFGAClient_ModelId(t *testing.T) {
 	modelId := "model123"
 
 	tests := []struct {
-		name                       string
-		prepareCache               func(client *OpenFGAClient)
-		listStoresMock             func(ctx context.Context, openFGAServiceClientMock *mocks.OpenFGAServiceClient)
-		readAuthorizationModelMock func(ctx context.Context, openFGAServiceClientMock *mocks.OpenFGAServiceClient)
-		expectedModelId            string
-		expectedErr                error
+		name            string
+		setupMock       func(ctx context.Context, client *OpenFGAClient, openFGAServiceClientMock *mocks.OpenFGAServiceClient)
+		expectedModelId string
+		expectedErr     error
 	}{
 		{
 			name: "ListStores_OK_ReadAuthorizationModels_OK",
-			listStoresMock: func(ctx context.Context, openFGAServiceClientMock *mocks.OpenFGAServiceClient) {
+			setupMock: func(ctx context.Context, client *OpenFGAClient, openFGAServiceClientMock *mocks.OpenFGAServiceClient) {
 				openFGAServiceClientMock.
 					On("ListStores", ctx, &openfgav1.ListStoresRequest{}).
 					Return(&openfgav1.ListStoresResponse{
 						Stores: []*openfgav1.Store{
 							{
-								Id:   "store123",
+								Id:   storeId,
 								Name: fmt.Sprintf("tenant-%s", tenantId),
 							},
 						},
 					}, nil)
-			},
 
-			readAuthorizationModelMock: func(ctx context.Context, openFGAServiceClientMock *mocks.OpenFGAServiceClient) {
 				openFGAServiceClientMock.
 					On("ReadAuthorizationModels", ctx, &openfgav1.ReadAuthorizationModelsRequest{StoreId: storeId}).
 					Return(&openfgav1.ReadAuthorizationModelsResponse{
 						AuthorizationModels: []*openfgav1.AuthorizationModel{
 							{
-								Id: "model123",
+								Id: modelId,
 							},
 						},
 					}, nil)
 			},
-			expectedModelId: "model123",
+			expectedModelId: modelId,
 		},
 		{
 			name: "HitModelIdCache_OK",
-			prepareCache: func(client *OpenFGAClient) {
+			setupMock: func(ctx context.Context, client *OpenFGAClient, openFGAServiceClientMock *mocks.OpenFGAServiceClient) {
 				client.cache.Set(cacheKeyForModel(tenantId), modelId, ttlcache.DefaultTTL)
 			},
-			expectedModelId: "model123",
+			expectedModelId: modelId,
 		},
 		{
 			name: "HitStoreIdCache_OK",
-			prepareCache: func(client *OpenFGAClient) {
+			setupMock: func(ctx context.Context, client *OpenFGAClient, openFGAServiceClientMock *mocks.OpenFGAServiceClient) {
 				client.cache.Set(cacheKeyForStore(tenantId), storeId, ttlcache.DefaultTTL)
-			},
-			listStoresMock: nil,
-			readAuthorizationModelMock: func(ctx context.Context, openFGAServiceClientMock *mocks.OpenFGAServiceClient) {
+
 				openFGAServiceClientMock.
 					On("ReadAuthorizationModels", ctx, &openfgav1.ReadAuthorizationModelsRequest{StoreId: storeId}).
 					Return(&openfgav1.ReadAuthorizationModelsResponse{
 						AuthorizationModels: []*openfgav1.AuthorizationModel{
 							{
-								Id: "model123",
+								Id: modelId,
 							},
 						},
 					}, nil)
 			},
-			expectedModelId: "model123",
+			expectedModelId: modelId,
 		},
 		{
 			name: "ListStores_Error",
-			listStoresMock: func(ctx context.Context, openFGAServiceClientMock *mocks.OpenFGAServiceClient) {
+			setupMock: func(ctx context.Context, client *OpenFGAClient, openFGAServiceClientMock *mocks.OpenFGAServiceClient) {
 				openFGAServiceClientMock.
 					On("ListStores", ctx, &openfgav1.ListStoresRequest{}).
-					Return(nil, errors.New("ListStoresError"))
+					Return(nil, assert.AnError)
 			},
-			expectedErr: errors.New("ListStoresError"),
+			expectedErr: assert.AnError,
 		},
 		{
 			name: "ReadAuthorizationModels_Error",
-			prepareCache: func(client *OpenFGAClient) {
+			setupMock: func(ctx context.Context, client *OpenFGAClient, openFGAServiceClientMock *mocks.OpenFGAServiceClient) {
 				client.cache.Set(cacheKeyForStore(tenantId), storeId, ttlcache.DefaultTTL)
-			},
-			listStoresMock: nil,
-			readAuthorizationModelMock: func(ctx context.Context, openFGAServiceClientMock *mocks.OpenFGAServiceClient) {
+
 				openFGAServiceClientMock.
 					On("ReadAuthorizationModels", ctx, &openfgav1.ReadAuthorizationModelsRequest{StoreId: storeId}).
-					Return(nil, errors.New("ReadAuthorizationModels"))
+					Return(nil, assert.AnError)
 			},
-			expectedErr: errors.New("ReadAuthorizationModels"),
+			expectedErr: assert.AnError,
+		},
+		{
+			name: "modelIdNotFound_Error",
+			setupMock: func(ctx context.Context, client *OpenFGAClient, openFGAServiceClientMock *mocks.OpenFGAServiceClient) {
+				openFGAServiceClientMock.
+					On("ListStores", ctx, &openfgav1.ListStoresRequest{}).
+					Return(&openfgav1.ListStoresResponse{
+						Stores: []*openfgav1.Store{
+							{
+								Id:   storeId,
+								Name: fmt.Sprintf("tenant-%s", tenantId),
+							},
+						},
+					}, nil)
+
+				openFGAServiceClientMock.
+					On("ReadAuthorizationModels", ctx, &openfgav1.ReadAuthorizationModelsRequest{StoreId: storeId}).
+					Return(&openfgav1.ReadAuthorizationModelsResponse{}, nil)
+			},
+			expectedErr: errors.New("could not determine model. No models found"),
+		},
+		{
+			name: "NoStoreIdFound_Error",
+			setupMock: func(ctx context.Context, client *OpenFGAClient, openFGAServiceClientMock *mocks.OpenFGAServiceClient) {
+				openFGAServiceClientMock.
+					On("ListStores", ctx, &openfgav1.ListStoresRequest{}).
+					Return(&openfgav1.ListStoresResponse{}, nil)
+			},
+			expectedErr: errors.New("could not determine store. No stores found"),
 		},
 	}
 
@@ -110,16 +131,8 @@ func TestOpenFGAClient_ModelId(t *testing.T) {
 			client, err := NewOpenFGAClient(openFGAServiceClientMock)
 			assert.NoError(t, err)
 
-			if tt.prepareCache != nil {
-				tt.prepareCache(client)
-			}
-
-			if tt.listStoresMock != nil {
-				tt.listStoresMock(ctx, openFGAServiceClientMock)
-			}
-
-			if tt.readAuthorizationModelMock != nil {
-				tt.readAuthorizationModelMock(ctx, openFGAServiceClientMock)
+			if tt.setupMock != nil {
+				tt.setupMock(ctx, client, openFGAServiceClientMock)
 			}
 
 			res, err := client.ModelId(ctx, tenantId)

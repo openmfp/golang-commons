@@ -13,20 +13,21 @@ func TestOpenFGAClient_Write(t *testing.T) {
 	tenantId := "tenant123"
 	storeId := "store123"
 	modelId := "model123"
+	object := "object"
+	relation := "relation"
+	user := "user"
 
 	tests := []struct {
-		name             string
-		prepareCache     func(client *OpenFGAClient)
-		clientWritesMock func(ctx context.Context, openFGAServiceClientMock *mocks.OpenFGAServiceClient)
-		expectedErr      error
+		name        string
+		setupMock   func(ctx context.Context, client *OpenFGAClient, openFGAServiceClientMock *mocks.OpenFGAServiceClient)
+		expectedErr error
 	}{
 		{
 			name: "Write_OK",
-			prepareCache: func(client *OpenFGAClient) {
+			setupMock: func(ctx context.Context, client *OpenFGAClient, openFGAServiceClientMock *mocks.OpenFGAServiceClient) {
 				client.cache.Set(cacheKeyForModel(tenantId), modelId, ttlcache.DefaultTTL)
 				client.cache.Set(cacheKeyForStore(tenantId), storeId, ttlcache.DefaultTTL)
-			},
-			clientWritesMock: func(ctx context.Context, openFGAServiceClientMock *mocks.OpenFGAServiceClient) {
+
 				openFGAServiceClientMock.
 					On("Write", ctx, &openfgav1.WriteRequest{
 						StoreId:              storeId,
@@ -34,15 +35,59 @@ func TestOpenFGAClient_Write(t *testing.T) {
 						Writes: &openfgav1.WriteRequestWrites{
 							TupleKeys: []*openfgav1.TupleKey{
 								{
-									Object:   "object",
-									Relation: "relation",
-									User:     "user",
+									Object:   object,
+									Relation: relation,
+									User:     user,
 								},
 							},
 						},
 					}).
 					Return(nil, nil)
 			},
+		},
+		{
+			name: "WriteStoreId_Error",
+			setupMock: func(ctx context.Context, client *OpenFGAClient, openFGAServiceClientMock *mocks.OpenFGAServiceClient) {
+				openFGAServiceClientMock.
+					On("ListStores", ctx, &openfgav1.ListStoresRequest{}).
+					Return(nil, assert.AnError)
+			},
+			expectedErr: assert.AnError,
+		},
+		{
+			name: "WriteModelId_Error",
+			setupMock: func(ctx context.Context, client *OpenFGAClient, openFGAServiceClientMock *mocks.OpenFGAServiceClient) {
+				client.cache.Set(cacheKeyForStore(tenantId), storeId, ttlcache.DefaultTTL)
+
+				openFGAServiceClientMock.
+					On("ReadAuthorizationModels", ctx, &openfgav1.ReadAuthorizationModelsRequest{StoreId: storeId}).
+					Return(nil, assert.AnError)
+			},
+			expectedErr: assert.AnError,
+		},
+		{
+			name: "Write_OK",
+			setupMock: func(ctx context.Context, client *OpenFGAClient, openFGAServiceClientMock *mocks.OpenFGAServiceClient) {
+				client.cache.Set(cacheKeyForModel(tenantId), modelId, ttlcache.DefaultTTL)
+				client.cache.Set(cacheKeyForStore(tenantId), storeId, ttlcache.DefaultTTL)
+
+				openFGAServiceClientMock.
+					On("Write", ctx, &openfgav1.WriteRequest{
+						StoreId:              storeId,
+						AuthorizationModelId: modelId,
+						Writes: &openfgav1.WriteRequestWrites{
+							TupleKeys: []*openfgav1.TupleKey{
+								{
+									Object:   object,
+									Relation: relation,
+									User:     user,
+								},
+							},
+						},
+					}).
+					Return(nil, assert.AnError)
+			},
+			expectedErr: assert.AnError,
 		},
 	}
 
@@ -54,15 +99,11 @@ func TestOpenFGAClient_Write(t *testing.T) {
 			client, err := NewOpenFGAClient(openFGAServiceClientMock)
 			assert.NoError(t, err)
 
-			if tt.prepareCache != nil {
-				tt.prepareCache(client)
+			if tt.setupMock != nil {
+				tt.setupMock(ctx, client, openFGAServiceClientMock)
 			}
 
-			if tt.clientWritesMock != nil {
-				tt.clientWritesMock(ctx, openFGAServiceClientMock)
-			}
-
-			_, err = client.Write(ctx, "object", "relation", "user", tenantId)
+			_, err = client.Write(ctx, object, relation, user, tenantId)
 			assert.Equal(t, tt.expectedErr, err)
 
 			openFGAServiceClientMock.AssertExpectations(t)
@@ -74,20 +115,21 @@ func TestOpenFGAClient_Delete(t *testing.T) {
 	tenantId := "tenant123"
 	storeId := "store123"
 	modelId := "model123"
+	object := "object"
+	relation := "relation"
+	user := "user"
 
 	tests := []struct {
 		name             string
-		prepareCache     func(client *OpenFGAClient)
-		clientWritesMock func(ctx context.Context, openFGAServiceClientMock *mocks.OpenFGAServiceClient)
+		clientWritesMock func(ctx context.Context, client *OpenFGAClient, openFGAServiceClientMock *mocks.OpenFGAServiceClient)
 		expectedErr      error
 	}{
 		{
 			name: "Write_OK",
-			prepareCache: func(client *OpenFGAClient) {
+			clientWritesMock: func(ctx context.Context, client *OpenFGAClient, openFGAServiceClientMock *mocks.OpenFGAServiceClient) {
 				client.cache.Set(cacheKeyForModel(tenantId), modelId, ttlcache.DefaultTTL)
 				client.cache.Set(cacheKeyForStore(tenantId), storeId, ttlcache.DefaultTTL)
-			},
-			clientWritesMock: func(ctx context.Context, openFGAServiceClientMock *mocks.OpenFGAServiceClient) {
+
 				openFGAServiceClientMock.
 					On("Write", ctx, &openfgav1.WriteRequest{
 						StoreId:              storeId,
@@ -95,9 +137,9 @@ func TestOpenFGAClient_Delete(t *testing.T) {
 						Deletes: &openfgav1.WriteRequestDeletes{
 							TupleKeys: []*openfgav1.TupleKeyWithoutCondition{
 								{
-									Object:   "object",
-									Relation: "relation",
-									User:     "user",
+									Object:   object,
+									Relation: relation,
+									User:     user,
 								},
 							},
 						},
@@ -115,15 +157,11 @@ func TestOpenFGAClient_Delete(t *testing.T) {
 			client, err := NewOpenFGAClient(openFGAServiceClientMock)
 			assert.NoError(t, err)
 
-			if tt.prepareCache != nil {
-				tt.prepareCache(client)
-			}
-
 			if tt.clientWritesMock != nil {
-				tt.clientWritesMock(ctx, openFGAServiceClientMock)
+				tt.clientWritesMock(ctx, client, openFGAServiceClientMock)
 			}
 
-			_, err = client.Delete(ctx, "object", "relation", "user", tenantId)
+			_, err = client.Delete(ctx, object, relation, user, tenantId)
 			assert.Equal(t, tt.expectedErr, err)
 
 			openFGAServiceClientMock.AssertExpectations(t)
@@ -180,6 +218,61 @@ func TestOpenFGAClient_WriteIfNeeded(t *testing.T) {
 					}).
 					Return(nil, nil)
 			},
+		},
+		{
+			name: "WriteIfNeededClientRead_Error",
+			prepareCache: func(client *OpenFGAClient) {
+				client.cache.Set(cacheKeyForModel(tenantId), modelId, ttlcache.DefaultTTL)
+				client.cache.Set(cacheKeyForStore(tenantId), storeId, ttlcache.DefaultTTL)
+			},
+			clientReadMock: func(ctx context.Context, openFGAServiceClientMock *mocks.OpenFGAServiceClient) {
+				openFGAServiceClientMock.On("Read", ctx, &openfgav1.ReadRequest{
+					StoreId: storeId,
+					TupleKey: &openfgav1.ReadRequestTupleKey{
+						Object:   object,
+						Relation: relation,
+						User:     user,
+					},
+				}).
+					Return(nil, assert.AnError)
+			},
+			expectedErr: assert.AnError,
+		},
+
+		{
+			name: "WriteIfNeededWrites_Error",
+			prepareCache: func(client *OpenFGAClient) {
+				client.cache.Set(cacheKeyForModel(tenantId), modelId, ttlcache.DefaultTTL)
+				client.cache.Set(cacheKeyForStore(tenantId), storeId, ttlcache.DefaultTTL)
+			},
+			clientReadMock: func(ctx context.Context, openFGAServiceClientMock *mocks.OpenFGAServiceClient) {
+				openFGAServiceClientMock.On("Read", ctx, &openfgav1.ReadRequest{
+					StoreId: storeId,
+					TupleKey: &openfgav1.ReadRequestTupleKey{
+						Object:   object,
+						Relation: relation,
+						User:     user,
+					},
+				}).Return(&openfgav1.ReadResponse{}, nil)
+			},
+			clientWritesMock: func(ctx context.Context, openFGAServiceClientMock *mocks.OpenFGAServiceClient) {
+				openFGAServiceClientMock.
+					On("Write", ctx, &openfgav1.WriteRequest{
+						StoreId:              storeId,
+						AuthorizationModelId: modelId,
+						Writes: &openfgav1.WriteRequestWrites{
+							TupleKeys: []*openfgav1.TupleKey{
+								{
+									Object:   object,
+									Relation: relation,
+									User:     user,
+								},
+							},
+						},
+					}).
+					Return(nil, assert.AnError)
+			},
+			expectedErr: assert.AnError,
 		},
 	}
 
