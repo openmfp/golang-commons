@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/jellydator/ttlcache/v3"
@@ -29,7 +30,7 @@ func (c *OpenFGAClient) ModelId(ctx context.Context, tenantId string) (string, e
 		return resp.AuthorizationModels[0].Id, nil
 	}
 
-	return "", fmt.Errorf("could not determine store. No stores found")
+	return "", errors.New("could not determine model. No models found")
 }
 
 func (c *OpenFGAClient) StoreId(ctx context.Context, tenantId string) (string, error) {
@@ -50,5 +51,6 @@ func (c *OpenFGAClient) StoreId(ctx context.Context, tenantId string) (string, e
 			return store.Id, nil
 		}
 	}
-	return "", fmt.Errorf("could not determine model. No models found")
+
+	return "", errors.New("could not determine store. No stores found")
 }

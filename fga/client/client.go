@@ -6,10 +6,9 @@ import (
 
 	"github.com/jellydator/ttlcache/v3"
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
+//go:generate mockery --name OpenFGAClientServicer --output ./mocks --filename client.go
 type OpenFGAClientServicer interface {
 	Check(ctx context.Context, object string, relation string, user string, tenantId string) (*openfgav1.CheckResponse, error)
 	Read(ctx context.Context, object *string, relation *string, user *string, tenantId string) (*openfgav1.ReadResponse, error)
@@ -21,39 +20,24 @@ type OpenFGAClientServicer interface {
 	Delete(ctx context.Context, object string, relation string, user string, tenantId string) (bool, error)
 	ModelId(ctx context.Context, tenantId string) (string, error)
 	StoreId(ctx context.Context, tenantId string) (string, error)
-	Dispose()
 }
 
 var _ OpenFGAClientServicer = (*OpenFGAClient)(nil)
 
 type OpenFGAClient struct {
 	client openfgav1.OpenFGAServiceClient
-	conn   *grpc.ClientConn
 	cache  *ttlcache.Cache[string, string]
 }
 
-func NewOpenFGAClient(host string) (*OpenFGAClient, error) {
-
-	conn, err := grpc.Dial(host,
-		grpc.WithBlock(),
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
-	if err != nil {
-		return nil, err
-	}
+func NewOpenFGAClient(openFGAServiceClient openfgav1.OpenFGAServiceClient) (*OpenFGAClient, error) {
 	cache := ttlcache.New[string, string](
 		ttlcache.WithTTL[string, string](5 * time.Minute),
 	)
 
 	go cache.Start()
-	grpClient := openfgav1.NewOpenFGAServiceClient(conn)
+
 	return &OpenFGAClient{
-		client: grpClient,
-		conn:   conn,
+		client: openFGAServiceClient,
 		cache:  cache,
 	}, nil
-}
-
-func (c *OpenFGAClient) Dispose() {
-	c.conn.Close()
 }
