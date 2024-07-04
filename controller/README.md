@@ -9,7 +9,9 @@ Packages:
 - filter
 - lifecycle
 
-## Usage
+## Package 'lifecycle'
+
+### Usage
 
 The purpose of this library is to simplify the process of writing an operator. This is done in the user code by creating a subroutine and implementing the `Subroutine` interface:
 
@@ -80,7 +82,7 @@ Features of the `lifecycle` package:
 - tracing
 - logger management
 
-## Configuration
+### Configuration
 
 ```go
 // SetupWithManager
