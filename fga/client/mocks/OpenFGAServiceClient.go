@@ -17,6 +17,14 @@ type OpenFGAServiceClient struct {
 	mock.Mock
 }
 
+type OpenFGAServiceClient_Expecter struct {
+	mock *mock.Mock
+}
+
+func (_m *OpenFGAServiceClient) EXPECT() *OpenFGAServiceClient_Expecter {
+	return &OpenFGAServiceClient_Expecter{mock: &_m.Mock}
+}
+
 // Check provides a mock function with given fields: ctx, in, opts
 func (_m *OpenFGAServiceClient) Check(ctx context.Context, in *openfgav1.CheckRequest, opts ...grpc.CallOption) (*openfgav1.CheckResponse, error) {
 	_va := make([]interface{}, len(opts))
@@ -45,6 +53,38 @@ func (_m *OpenFGAServiceClient) Check(ctx context.Context, in *openfgav1.CheckRe
 	}
 
 	return r0, r1
+}
+
+// OpenFGAServiceClient_Check_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Check'
+type OpenFGAServiceClient_Check_Call struct {
+	*mock.Call
+}
+
+// Check is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *openfgav1.CheckRequest
+//   - opts ...grpc.CallOption
+func (_e *OpenFGAServiceClient_Expecter) Check(ctx interface{}, in interface{}, opts ...interface{}) *OpenFGAServiceClient_Check_Call {
+	return &OpenFGAServiceClient_Check_Call{Call: _e.mock.On("Check",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *OpenFGAServiceClient_Check_Call) Run(run func(ctx context.Context, in *openfgav1.CheckRequest, opts ...grpc.CallOption)) *OpenFGAServiceClient_Check_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*openfgav1.CheckRequest), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *OpenFGAServiceClient_Check_Call) Return(_a0 *openfgav1.CheckResponse, _a1 error) *OpenFGAServiceClient_Check_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
 }
 
 // CreateStore provides a mock function with given fields: ctx, in, opts
@@ -77,6 +117,38 @@ func (_m *OpenFGAServiceClient) CreateStore(ctx context.Context, in *openfgav1.C
 	return r0, r1
 }
 
+// OpenFGAServiceClient_CreateStore_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateStore'
+type OpenFGAServiceClient_CreateStore_Call struct {
+	*mock.Call
+}
+
+// CreateStore is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *openfgav1.CreateStoreRequest
+//   - opts ...grpc.CallOption
+func (_e *OpenFGAServiceClient_Expecter) CreateStore(ctx interface{}, in interface{}, opts ...interface{}) *OpenFGAServiceClient_CreateStore_Call {
+	return &OpenFGAServiceClient_CreateStore_Call{Call: _e.mock.On("CreateStore",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *OpenFGAServiceClient_CreateStore_Call) Run(run func(ctx context.Context, in *openfgav1.CreateStoreRequest, opts ...grpc.CallOption)) *OpenFGAServiceClient_CreateStore_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*openfgav1.CreateStoreRequest), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *OpenFGAServiceClient_CreateStore_Call) Return(_a0 *openfgav1.CreateStoreResponse, _a1 error) *OpenFGAServiceClient_CreateStore_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
 // DeleteStore provides a mock function with given fields: ctx, in, opts
 func (_m *OpenFGAServiceClient) DeleteStore(ctx context.Context, in *openfgav1.DeleteStoreRequest, opts ...grpc.CallOption) (*openfgav1.DeleteStoreResponse, error) {
 	_va := make([]interface{}, len(opts))
@@ -105,6 +177,38 @@ func (_m *OpenFGAServiceClient) DeleteStore(ctx context.Context, in *openfgav1.D
 	}
 
 	return r0, r1
+}
+
+// OpenFGAServiceClient_DeleteStore_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteStore'
+type OpenFGAServiceClient_DeleteStore_Call struct {
+	*mock.Call
+}
+
+// DeleteStore is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *openfgav1.DeleteStoreRequest
+//   - opts ...grpc.CallOption
+func (_e *OpenFGAServiceClient_Expecter) DeleteStore(ctx interface{}, in interface{}, opts ...interface{}) *OpenFGAServiceClient_DeleteStore_Call {
+	return &OpenFGAServiceClient_DeleteStore_Call{Call: _e.mock.On("DeleteStore",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *OpenFGAServiceClient_DeleteStore_Call) Run(run func(ctx context.Context, in *openfgav1.DeleteStoreRequest, opts ...grpc.CallOption)) *OpenFGAServiceClient_DeleteStore_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*openfgav1.DeleteStoreRequest), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *OpenFGAServiceClient_DeleteStore_Call) Return(_a0 *openfgav1.DeleteStoreResponse, _a1 error) *OpenFGAServiceClient_DeleteStore_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
 }
 
 // Expand provides a mock function with given fields: ctx, in, opts
@@ -137,6 +241,38 @@ func (_m *OpenFGAServiceClient) Expand(ctx context.Context, in *openfgav1.Expand
 	return r0, r1
 }
 
+// OpenFGAServiceClient_Expand_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Expand'
+type OpenFGAServiceClient_Expand_Call struct {
+	*mock.Call
+}
+
+// Expand is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *openfgav1.ExpandRequest
+//   - opts ...grpc.CallOption
+func (_e *OpenFGAServiceClient_Expecter) Expand(ctx interface{}, in interface{}, opts ...interface{}) *OpenFGAServiceClient_Expand_Call {
+	return &OpenFGAServiceClient_Expand_Call{Call: _e.mock.On("Expand",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *OpenFGAServiceClient_Expand_Call) Run(run func(ctx context.Context, in *openfgav1.ExpandRequest, opts ...grpc.CallOption)) *OpenFGAServiceClient_Expand_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*openfgav1.ExpandRequest), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *OpenFGAServiceClient_Expand_Call) Return(_a0 *openfgav1.ExpandResponse, _a1 error) *OpenFGAServiceClient_Expand_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
 // GetStore provides a mock function with given fields: ctx, in, opts
 func (_m *OpenFGAServiceClient) GetStore(ctx context.Context, in *openfgav1.GetStoreRequest, opts ...grpc.CallOption) (*openfgav1.GetStoreResponse, error) {
 	_va := make([]interface{}, len(opts))
@@ -165,6 +301,38 @@ func (_m *OpenFGAServiceClient) GetStore(ctx context.Context, in *openfgav1.GetS
 	}
 
 	return r0, r1
+}
+
+// OpenFGAServiceClient_GetStore_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetStore'
+type OpenFGAServiceClient_GetStore_Call struct {
+	*mock.Call
+}
+
+// GetStore is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *openfgav1.GetStoreRequest
+//   - opts ...grpc.CallOption
+func (_e *OpenFGAServiceClient_Expecter) GetStore(ctx interface{}, in interface{}, opts ...interface{}) *OpenFGAServiceClient_GetStore_Call {
+	return &OpenFGAServiceClient_GetStore_Call{Call: _e.mock.On("GetStore",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *OpenFGAServiceClient_GetStore_Call) Run(run func(ctx context.Context, in *openfgav1.GetStoreRequest, opts ...grpc.CallOption)) *OpenFGAServiceClient_GetStore_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*openfgav1.GetStoreRequest), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *OpenFGAServiceClient_GetStore_Call) Return(_a0 *openfgav1.GetStoreResponse, _a1 error) *OpenFGAServiceClient_GetStore_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
 }
 
 // ListObjects provides a mock function with given fields: ctx, in, opts
@@ -197,6 +365,38 @@ func (_m *OpenFGAServiceClient) ListObjects(ctx context.Context, in *openfgav1.L
 	return r0, r1
 }
 
+// OpenFGAServiceClient_ListObjects_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListObjects'
+type OpenFGAServiceClient_ListObjects_Call struct {
+	*mock.Call
+}
+
+// ListObjects is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *openfgav1.ListObjectsRequest
+//   - opts ...grpc.CallOption
+func (_e *OpenFGAServiceClient_Expecter) ListObjects(ctx interface{}, in interface{}, opts ...interface{}) *OpenFGAServiceClient_ListObjects_Call {
+	return &OpenFGAServiceClient_ListObjects_Call{Call: _e.mock.On("ListObjects",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *OpenFGAServiceClient_ListObjects_Call) Run(run func(ctx context.Context, in *openfgav1.ListObjectsRequest, opts ...grpc.CallOption)) *OpenFGAServiceClient_ListObjects_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*openfgav1.ListObjectsRequest), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *OpenFGAServiceClient_ListObjects_Call) Return(_a0 *openfgav1.ListObjectsResponse, _a1 error) *OpenFGAServiceClient_ListObjects_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
 // ListStores provides a mock function with given fields: ctx, in, opts
 func (_m *OpenFGAServiceClient) ListStores(ctx context.Context, in *openfgav1.ListStoresRequest, opts ...grpc.CallOption) (*openfgav1.ListStoresResponse, error) {
 	_va := make([]interface{}, len(opts))
@@ -225,6 +425,38 @@ func (_m *OpenFGAServiceClient) ListStores(ctx context.Context, in *openfgav1.Li
 	}
 
 	return r0, r1
+}
+
+// OpenFGAServiceClient_ListStores_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListStores'
+type OpenFGAServiceClient_ListStores_Call struct {
+	*mock.Call
+}
+
+// ListStores is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *openfgav1.ListStoresRequest
+//   - opts ...grpc.CallOption
+func (_e *OpenFGAServiceClient_Expecter) ListStores(ctx interface{}, in interface{}, opts ...interface{}) *OpenFGAServiceClient_ListStores_Call {
+	return &OpenFGAServiceClient_ListStores_Call{Call: _e.mock.On("ListStores",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *OpenFGAServiceClient_ListStores_Call) Run(run func(ctx context.Context, in *openfgav1.ListStoresRequest, opts ...grpc.CallOption)) *OpenFGAServiceClient_ListStores_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*openfgav1.ListStoresRequest), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *OpenFGAServiceClient_ListStores_Call) Return(_a0 *openfgav1.ListStoresResponse, _a1 error) *OpenFGAServiceClient_ListStores_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
 }
 
 // ListUsers provides a mock function with given fields: ctx, in, opts
@@ -257,6 +489,38 @@ func (_m *OpenFGAServiceClient) ListUsers(ctx context.Context, in *openfgav1.Lis
 	return r0, r1
 }
 
+// OpenFGAServiceClient_ListUsers_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListUsers'
+type OpenFGAServiceClient_ListUsers_Call struct {
+	*mock.Call
+}
+
+// ListUsers is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *openfgav1.ListUsersRequest
+//   - opts ...grpc.CallOption
+func (_e *OpenFGAServiceClient_Expecter) ListUsers(ctx interface{}, in interface{}, opts ...interface{}) *OpenFGAServiceClient_ListUsers_Call {
+	return &OpenFGAServiceClient_ListUsers_Call{Call: _e.mock.On("ListUsers",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *OpenFGAServiceClient_ListUsers_Call) Run(run func(ctx context.Context, in *openfgav1.ListUsersRequest, opts ...grpc.CallOption)) *OpenFGAServiceClient_ListUsers_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*openfgav1.ListUsersRequest), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *OpenFGAServiceClient_ListUsers_Call) Return(_a0 *openfgav1.ListUsersResponse, _a1 error) *OpenFGAServiceClient_ListUsers_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
 // Read provides a mock function with given fields: ctx, in, opts
 func (_m *OpenFGAServiceClient) Read(ctx context.Context, in *openfgav1.ReadRequest, opts ...grpc.CallOption) (*openfgav1.ReadResponse, error) {
 	_va := make([]interface{}, len(opts))
@@ -285,6 +549,38 @@ func (_m *OpenFGAServiceClient) Read(ctx context.Context, in *openfgav1.ReadRequ
 	}
 
 	return r0, r1
+}
+
+// OpenFGAServiceClient_Read_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Read'
+type OpenFGAServiceClient_Read_Call struct {
+	*mock.Call
+}
+
+// Read is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *openfgav1.ReadRequest
+//   - opts ...grpc.CallOption
+func (_e *OpenFGAServiceClient_Expecter) Read(ctx interface{}, in interface{}, opts ...interface{}) *OpenFGAServiceClient_Read_Call {
+	return &OpenFGAServiceClient_Read_Call{Call: _e.mock.On("Read",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *OpenFGAServiceClient_Read_Call) Run(run func(ctx context.Context, in *openfgav1.ReadRequest, opts ...grpc.CallOption)) *OpenFGAServiceClient_Read_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*openfgav1.ReadRequest), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *OpenFGAServiceClient_Read_Call) Return(_a0 *openfgav1.ReadResponse, _a1 error) *OpenFGAServiceClient_Read_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
 }
 
 // ReadAssertions provides a mock function with given fields: ctx, in, opts
@@ -317,6 +613,38 @@ func (_m *OpenFGAServiceClient) ReadAssertions(ctx context.Context, in *openfgav
 	return r0, r1
 }
 
+// OpenFGAServiceClient_ReadAssertions_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ReadAssertions'
+type OpenFGAServiceClient_ReadAssertions_Call struct {
+	*mock.Call
+}
+
+// ReadAssertions is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *openfgav1.ReadAssertionsRequest
+//   - opts ...grpc.CallOption
+func (_e *OpenFGAServiceClient_Expecter) ReadAssertions(ctx interface{}, in interface{}, opts ...interface{}) *OpenFGAServiceClient_ReadAssertions_Call {
+	return &OpenFGAServiceClient_ReadAssertions_Call{Call: _e.mock.On("ReadAssertions",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *OpenFGAServiceClient_ReadAssertions_Call) Run(run func(ctx context.Context, in *openfgav1.ReadAssertionsRequest, opts ...grpc.CallOption)) *OpenFGAServiceClient_ReadAssertions_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*openfgav1.ReadAssertionsRequest), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *OpenFGAServiceClient_ReadAssertions_Call) Return(_a0 *openfgav1.ReadAssertionsResponse, _a1 error) *OpenFGAServiceClient_ReadAssertions_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
 // ReadAuthorizationModel provides a mock function with given fields: ctx, in, opts
 func (_m *OpenFGAServiceClient) ReadAuthorizationModel(ctx context.Context, in *openfgav1.ReadAuthorizationModelRequest, opts ...grpc.CallOption) (*openfgav1.ReadAuthorizationModelResponse, error) {
 	_va := make([]interface{}, len(opts))
@@ -345,6 +673,38 @@ func (_m *OpenFGAServiceClient) ReadAuthorizationModel(ctx context.Context, in *
 	}
 
 	return r0, r1
+}
+
+// OpenFGAServiceClient_ReadAuthorizationModel_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ReadAuthorizationModel'
+type OpenFGAServiceClient_ReadAuthorizationModel_Call struct {
+	*mock.Call
+}
+
+// ReadAuthorizationModel is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *openfgav1.ReadAuthorizationModelRequest
+//   - opts ...grpc.CallOption
+func (_e *OpenFGAServiceClient_Expecter) ReadAuthorizationModel(ctx interface{}, in interface{}, opts ...interface{}) *OpenFGAServiceClient_ReadAuthorizationModel_Call {
+	return &OpenFGAServiceClient_ReadAuthorizationModel_Call{Call: _e.mock.On("ReadAuthorizationModel",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *OpenFGAServiceClient_ReadAuthorizationModel_Call) Run(run func(ctx context.Context, in *openfgav1.ReadAuthorizationModelRequest, opts ...grpc.CallOption)) *OpenFGAServiceClient_ReadAuthorizationModel_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*openfgav1.ReadAuthorizationModelRequest), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *OpenFGAServiceClient_ReadAuthorizationModel_Call) Return(_a0 *openfgav1.ReadAuthorizationModelResponse, _a1 error) *OpenFGAServiceClient_ReadAuthorizationModel_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
 }
 
 // ReadAuthorizationModels provides a mock function with given fields: ctx, in, opts
@@ -377,6 +737,38 @@ func (_m *OpenFGAServiceClient) ReadAuthorizationModels(ctx context.Context, in 
 	return r0, r1
 }
 
+// OpenFGAServiceClient_ReadAuthorizationModels_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ReadAuthorizationModels'
+type OpenFGAServiceClient_ReadAuthorizationModels_Call struct {
+	*mock.Call
+}
+
+// ReadAuthorizationModels is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *openfgav1.ReadAuthorizationModelsRequest
+//   - opts ...grpc.CallOption
+func (_e *OpenFGAServiceClient_Expecter) ReadAuthorizationModels(ctx interface{}, in interface{}, opts ...interface{}) *OpenFGAServiceClient_ReadAuthorizationModels_Call {
+	return &OpenFGAServiceClient_ReadAuthorizationModels_Call{Call: _e.mock.On("ReadAuthorizationModels",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *OpenFGAServiceClient_ReadAuthorizationModels_Call) Run(run func(ctx context.Context, in *openfgav1.ReadAuthorizationModelsRequest, opts ...grpc.CallOption)) *OpenFGAServiceClient_ReadAuthorizationModels_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*openfgav1.ReadAuthorizationModelsRequest), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *OpenFGAServiceClient_ReadAuthorizationModels_Call) Return(_a0 *openfgav1.ReadAuthorizationModelsResponse, _a1 error) *OpenFGAServiceClient_ReadAuthorizationModels_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
 // ReadChanges provides a mock function with given fields: ctx, in, opts
 func (_m *OpenFGAServiceClient) ReadChanges(ctx context.Context, in *openfgav1.ReadChangesRequest, opts ...grpc.CallOption) (*openfgav1.ReadChangesResponse, error) {
 	_va := make([]interface{}, len(opts))
@@ -405,6 +797,38 @@ func (_m *OpenFGAServiceClient) ReadChanges(ctx context.Context, in *openfgav1.R
 	}
 
 	return r0, r1
+}
+
+// OpenFGAServiceClient_ReadChanges_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ReadChanges'
+type OpenFGAServiceClient_ReadChanges_Call struct {
+	*mock.Call
+}
+
+// ReadChanges is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *openfgav1.ReadChangesRequest
+//   - opts ...grpc.CallOption
+func (_e *OpenFGAServiceClient_Expecter) ReadChanges(ctx interface{}, in interface{}, opts ...interface{}) *OpenFGAServiceClient_ReadChanges_Call {
+	return &OpenFGAServiceClient_ReadChanges_Call{Call: _e.mock.On("ReadChanges",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *OpenFGAServiceClient_ReadChanges_Call) Run(run func(ctx context.Context, in *openfgav1.ReadChangesRequest, opts ...grpc.CallOption)) *OpenFGAServiceClient_ReadChanges_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*openfgav1.ReadChangesRequest), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *OpenFGAServiceClient_ReadChanges_Call) Return(_a0 *openfgav1.ReadChangesResponse, _a1 error) *OpenFGAServiceClient_ReadChanges_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
 }
 
 // StreamedListObjects provides a mock function with given fields: ctx, in, opts
@@ -437,6 +861,38 @@ func (_m *OpenFGAServiceClient) StreamedListObjects(ctx context.Context, in *ope
 	return r0, r1
 }
 
+// OpenFGAServiceClient_StreamedListObjects_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'StreamedListObjects'
+type OpenFGAServiceClient_StreamedListObjects_Call struct {
+	*mock.Call
+}
+
+// StreamedListObjects is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *openfgav1.StreamedListObjectsRequest
+//   - opts ...grpc.CallOption
+func (_e *OpenFGAServiceClient_Expecter) StreamedListObjects(ctx interface{}, in interface{}, opts ...interface{}) *OpenFGAServiceClient_StreamedListObjects_Call {
+	return &OpenFGAServiceClient_StreamedListObjects_Call{Call: _e.mock.On("StreamedListObjects",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *OpenFGAServiceClient_StreamedListObjects_Call) Run(run func(ctx context.Context, in *openfgav1.StreamedListObjectsRequest, opts ...grpc.CallOption)) *OpenFGAServiceClient_StreamedListObjects_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*openfgav1.StreamedListObjectsRequest), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *OpenFGAServiceClient_StreamedListObjects_Call) Return(_a0 openfgav1.OpenFGAService_StreamedListObjectsClient, _a1 error) *OpenFGAServiceClient_StreamedListObjects_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
 // UpdateStore provides a mock function with given fields: ctx, in, opts
 func (_m *OpenFGAServiceClient) UpdateStore(ctx context.Context, in *openfgav1.UpdateStoreRequest, opts ...grpc.CallOption) (*openfgav1.UpdateStoreResponse, error) {
 	_va := make([]interface{}, len(opts))
@@ -465,6 +921,38 @@ func (_m *OpenFGAServiceClient) UpdateStore(ctx context.Context, in *openfgav1.U
 	}
 
 	return r0, r1
+}
+
+// OpenFGAServiceClient_UpdateStore_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateStore'
+type OpenFGAServiceClient_UpdateStore_Call struct {
+	*mock.Call
+}
+
+// UpdateStore is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *openfgav1.UpdateStoreRequest
+//   - opts ...grpc.CallOption
+func (_e *OpenFGAServiceClient_Expecter) UpdateStore(ctx interface{}, in interface{}, opts ...interface{}) *OpenFGAServiceClient_UpdateStore_Call {
+	return &OpenFGAServiceClient_UpdateStore_Call{Call: _e.mock.On("UpdateStore",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *OpenFGAServiceClient_UpdateStore_Call) Run(run func(ctx context.Context, in *openfgav1.UpdateStoreRequest, opts ...grpc.CallOption)) *OpenFGAServiceClient_UpdateStore_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*openfgav1.UpdateStoreRequest), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *OpenFGAServiceClient_UpdateStore_Call) Return(_a0 *openfgav1.UpdateStoreResponse, _a1 error) *OpenFGAServiceClient_UpdateStore_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
 }
 
 // Write provides a mock function with given fields: ctx, in, opts
@@ -497,6 +985,38 @@ func (_m *OpenFGAServiceClient) Write(ctx context.Context, in *openfgav1.WriteRe
 	return r0, r1
 }
 
+// OpenFGAServiceClient_Write_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Write'
+type OpenFGAServiceClient_Write_Call struct {
+	*mock.Call
+}
+
+// Write is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *openfgav1.WriteRequest
+//   - opts ...grpc.CallOption
+func (_e *OpenFGAServiceClient_Expecter) Write(ctx interface{}, in interface{}, opts ...interface{}) *OpenFGAServiceClient_Write_Call {
+	return &OpenFGAServiceClient_Write_Call{Call: _e.mock.On("Write",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *OpenFGAServiceClient_Write_Call) Run(run func(ctx context.Context, in *openfgav1.WriteRequest, opts ...grpc.CallOption)) *OpenFGAServiceClient_Write_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*openfgav1.WriteRequest), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *OpenFGAServiceClient_Write_Call) Return(_a0 *openfgav1.WriteResponse, _a1 error) *OpenFGAServiceClient_Write_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
 // WriteAssertions provides a mock function with given fields: ctx, in, opts
 func (_m *OpenFGAServiceClient) WriteAssertions(ctx context.Context, in *openfgav1.WriteAssertionsRequest, opts ...grpc.CallOption) (*openfgav1.WriteAssertionsResponse, error) {
 	_va := make([]interface{}, len(opts))
@@ -527,6 +1047,38 @@ func (_m *OpenFGAServiceClient) WriteAssertions(ctx context.Context, in *openfga
 	return r0, r1
 }
 
+// OpenFGAServiceClient_WriteAssertions_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WriteAssertions'
+type OpenFGAServiceClient_WriteAssertions_Call struct {
+	*mock.Call
+}
+
+// WriteAssertions is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *openfgav1.WriteAssertionsRequest
+//   - opts ...grpc.CallOption
+func (_e *OpenFGAServiceClient_Expecter) WriteAssertions(ctx interface{}, in interface{}, opts ...interface{}) *OpenFGAServiceClient_WriteAssertions_Call {
+	return &OpenFGAServiceClient_WriteAssertions_Call{Call: _e.mock.On("WriteAssertions",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *OpenFGAServiceClient_WriteAssertions_Call) Run(run func(ctx context.Context, in *openfgav1.WriteAssertionsRequest, opts ...grpc.CallOption)) *OpenFGAServiceClient_WriteAssertions_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*openfgav1.WriteAssertionsRequest), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *OpenFGAServiceClient_WriteAssertions_Call) Return(_a0 *openfgav1.WriteAssertionsResponse, _a1 error) *OpenFGAServiceClient_WriteAssertions_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
 // WriteAuthorizationModel provides a mock function with given fields: ctx, in, opts
 func (_m *OpenFGAServiceClient) WriteAuthorizationModel(ctx context.Context, in *openfgav1.WriteAuthorizationModelRequest, opts ...grpc.CallOption) (*openfgav1.WriteAuthorizationModelResponse, error) {
 	_va := make([]interface{}, len(opts))
@@ -555,6 +1107,38 @@ func (_m *OpenFGAServiceClient) WriteAuthorizationModel(ctx context.Context, in 
 	}
 
 	return r0, r1
+}
+
+// OpenFGAServiceClient_WriteAuthorizationModel_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WriteAuthorizationModel'
+type OpenFGAServiceClient_WriteAuthorizationModel_Call struct {
+	*mock.Call
+}
+
+// WriteAuthorizationModel is a helper method to define mock.On call
+//   - ctx context.Context
+//   - in *openfgav1.WriteAuthorizationModelRequest
+//   - opts ...grpc.CallOption
+func (_e *OpenFGAServiceClient_Expecter) WriteAuthorizationModel(ctx interface{}, in interface{}, opts ...interface{}) *OpenFGAServiceClient_WriteAuthorizationModel_Call {
+	return &OpenFGAServiceClient_WriteAuthorizationModel_Call{Call: _e.mock.On("WriteAuthorizationModel",
+		append([]interface{}{ctx, in}, opts...)...)}
+}
+
+func (_c *OpenFGAServiceClient_WriteAuthorizationModel_Call) Run(run func(ctx context.Context, in *openfgav1.WriteAuthorizationModelRequest, opts ...grpc.CallOption)) *OpenFGAServiceClient_WriteAuthorizationModel_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]grpc.CallOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(grpc.CallOption)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*openfgav1.WriteAuthorizationModelRequest), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *OpenFGAServiceClient_WriteAuthorizationModel_Call) Return(_a0 *openfgav1.WriteAuthorizationModelResponse, _a1 error) *OpenFGAServiceClient_WriteAuthorizationModel_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
 }
 
 type mockConstructorTestingTNewOpenFGAServiceClient interface {

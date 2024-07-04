@@ -27,17 +27,16 @@ func TestOpenFGAClient_Exists(t *testing.T) {
 			setupMock: func(ctx context.Context, client *OpenFGAClient, openFGAServiceClientMock *mocks.OpenFGAServiceClient) {
 				client.cache.Set(cacheKeyForStore(tenantId), storeId, ttlcache.DefaultTTL)
 
-				openFGAServiceClientMock.On("Read", ctx, &openfgav1.ReadRequest{
-					StoreId: storeId,
-					TupleKey: &openfgav1.ReadRequestTupleKey{
-						Object:   object,
-						Relation: relation,
-						User:     user,
-					},
-				}).
-					Return(&openfgav1.ReadResponse{
-						Tuples: []*openfgav1.Tuple{{Key: nil}},
-					}, nil)
+				openFGAServiceClientMock.EXPECT().
+					Read(ctx, &openfgav1.ReadRequest{
+						StoreId: storeId,
+						TupleKey: &openfgav1.ReadRequestTupleKey{
+							Object:   object,
+							Relation: relation,
+							User:     user,
+						}}).
+					Return(&openfgav1.ReadResponse{Tuples: []*openfgav1.Tuple{{Key: nil}}}, nil).
+					Once()
 			},
 			expectedResponse: true,
 		},
@@ -46,15 +45,16 @@ func TestOpenFGAClient_Exists(t *testing.T) {
 			setupMock: func(ctx context.Context, client *OpenFGAClient, openFGAServiceClientMock *mocks.OpenFGAServiceClient) {
 				client.cache.Set(cacheKeyForStore(tenantId), storeId, ttlcache.DefaultTTL)
 
-				openFGAServiceClientMock.On("Read", ctx, &openfgav1.ReadRequest{
-					StoreId: storeId,
-					TupleKey: &openfgav1.ReadRequestTupleKey{
-						Object:   object,
-						Relation: relation,
-						User:     user,
-					},
-				}).
-					Return(nil, assert.AnError)
+				openFGAServiceClientMock.EXPECT().
+					Read(ctx, &openfgav1.ReadRequest{
+						StoreId: storeId,
+						TupleKey: &openfgav1.ReadRequestTupleKey{
+							Object:   object,
+							Relation: relation,
+							User:     user,
+						}}).
+					Return(nil, assert.AnError).
+					Once()
 			},
 			expectedResponse: false,
 			expectedErr:      assert.AnError,
@@ -64,15 +64,16 @@ func TestOpenFGAClient_Exists(t *testing.T) {
 			setupMock: func(ctx context.Context, client *OpenFGAClient, openFGAServiceClientMock *mocks.OpenFGAServiceClient) {
 				client.cache.Set(cacheKeyForStore(tenantId), storeId, ttlcache.DefaultTTL)
 
-				openFGAServiceClientMock.On("Read", ctx, &openfgav1.ReadRequest{
-					StoreId: storeId,
-					TupleKey: &openfgav1.ReadRequestTupleKey{
-						Object:   object,
-						Relation: relation,
-						User:     user,
-					},
-				}).
-					Return(&openfgav1.ReadResponse{}, nil)
+				openFGAServiceClientMock.EXPECT().
+					Read(ctx, &openfgav1.ReadRequest{
+						StoreId: storeId,
+						TupleKey: &openfgav1.ReadRequestTupleKey{
+							Object:   object,
+							Relation: relation,
+							User:     user,
+						}}).
+					Return(&openfgav1.ReadResponse{}, nil).
+					Once()
 			},
 			expectedResponse: false,
 			expectedErr:      nil,

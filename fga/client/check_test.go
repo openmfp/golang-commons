@@ -28,24 +28,28 @@ func TestOpenFGAClient_Check(t *testing.T) {
 				client.cache.Set(cacheKeyForStore(tenantId), storeId, ttlcache.DefaultTTL)
 				client.cache.Set(cacheKeyForModel(tenantId), modelId, ttlcache.DefaultTTL)
 
-				openFGAServiceClientMock.On("Check", ctx, &openfgav1.CheckRequest{
-					StoreId:              storeId,
-					AuthorizationModelId: modelId,
-					TupleKey: &openfgav1.CheckRequestTupleKey{
-						Object:   object,
-						Relation: relation,
-						User:     user,
-					},
-				}).
-					Return(&openfgav1.CheckResponse{}, nil)
+				openFGAServiceClientMock.EXPECT().
+					Check(ctx, &openfgav1.CheckRequest{
+						StoreId:              storeId,
+						AuthorizationModelId: modelId,
+						TupleKey: &openfgav1.CheckRequestTupleKey{
+							Object:   object,
+							Relation: relation,
+							User:     user,
+						},
+					}).
+					Return(&openfgav1.CheckResponse{}, nil).
+					Once()
 			},
 		},
 		{
 			name: "Check_StoreIdError",
 			setupMock: func(ctx context.Context, client *OpenFGAClient, openFGAServiceClientMock *mocks.OpenFGAServiceClient) {
 
-				openFGAServiceClientMock.On("ListStores", ctx, &openfgav1.ListStoresRequest{}).
-					Return(&openfgav1.ListStoresResponse{}, assert.AnError)
+				openFGAServiceClientMock.EXPECT().
+					ListStores(ctx, &openfgav1.ListStoresRequest{}).
+					Return(&openfgav1.ListStoresResponse{}, assert.AnError).
+					Once()
 			},
 			expectedErr: assert.AnError,
 		},
@@ -54,8 +58,10 @@ func TestOpenFGAClient_Check(t *testing.T) {
 			setupMock: func(ctx context.Context, client *OpenFGAClient, openFGAServiceClientMock *mocks.OpenFGAServiceClient) {
 				client.cache.Set(cacheKeyForStore(tenantId), storeId, ttlcache.DefaultTTL)
 
-				openFGAServiceClientMock.On("ReadAuthorizationModels", ctx, &openfgav1.ReadAuthorizationModelsRequest{StoreId: storeId}).
-					Return(&openfgav1.ReadAuthorizationModelsResponse{}, assert.AnError)
+				openFGAServiceClientMock.EXPECT().
+					ReadAuthorizationModels(ctx, &openfgav1.ReadAuthorizationModelsRequest{StoreId: storeId}).
+					Return(&openfgav1.ReadAuthorizationModelsResponse{}, assert.AnError).
+					Once()
 			},
 			expectedErr: assert.AnError,
 		},
