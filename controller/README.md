@@ -77,6 +77,8 @@ Features of the `lifecycle` package:
 - condition management
 - finalization and subroutine processing
 - status update
+- tracing
+- logger management
 
 ## Configuration
 
