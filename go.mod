@@ -5,6 +5,7 @@ go 1.22.3
 require (
 	github.com/99designs/gqlgen v0.17.49
 	github.com/getsentry/sentry-go v0.28.0
+	github.com/go-jose/go-jose/v4 v4.0.2
 	github.com/go-logr/logr v1.4.2
 	github.com/go-logr/zerologr v1.2.3
 	github.com/golang-jwt/jwt/v5 v5.2.1
@@ -20,7 +21,6 @@ require (
 	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a
 	golang.org/x/oauth2 v0.21.0
 	google.golang.org/grpc v1.64.0
-	gopkg.in/square/go-jose.v2 v2.6.0
 	k8s.io/api v0.30.2
 	k8s.io/apimachinery v0.30.2
 	k8s.io/client-go v0.30.2
