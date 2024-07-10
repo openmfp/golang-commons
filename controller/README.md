@@ -11,11 +11,56 @@ Packages:
 
 ## Package 'lifecycle'
 
+### Class Diagram
+
+```mermaid
+classDiagram
+    class LifecycleManager {
+        - log *logger.Logger
+        - client client.Client
+        - subroutines []Subroutine
+        - operatorName string
+        - controllerName string
+        - spreadReconciles bool
+        - manageConditions bool
+        + Reconcile(ctx context.Context, req ctrl.Request, instance RuntimeObject) (ctrl.Result, error)
+        + markResourceAsFinal(instance RuntimeObject, log *logger.Logger, conditions []v1.Condition, status v1.ConditionStatus) error
+        + handleClientError(msg string, log *logger.Logger, err error, sentryTags sentry.Tags) (ctrl.Result, error)
+        + reconcileSubroutine(ctx context.Context, instance RuntimeObject, subroutine Subroutine, log *logger.Logger, sentryTags map[string]string) (ctrl.Result, bool, error)
+        + removeFinalizerIfNeeded(ctx context.Context, instance RuntimeObject, subroutine Subroutine, result ctrl.Result) errors.OperatorError
+        + addFinalizerIfNeeded(ctx context.Context, instance RuntimeObject, subroutine Subroutine) errors.OperatorError
+        + SetupWithManager(mgr ctrl.Manager, maxReconciles int, reconcilerName string, instance RuntimeObject, debugLabelValue string, r reconcile.Reconciler, log *logger.Logger, eventPredicates ...predicate.Predicate) error
+        + NewLifecycleManager(log *logger.Logger, operatorName string, controllerName string, client client.Client, subroutines []Subroutine) *LifecycleManager
+    }
+
+    class Subroutine {
+        <<interface>>
+        + Process(ctx context.Context, instance RuntimeObject) (ctrl.Result, errors.OperatorError)
+        + Finalize(ctx context.Context, instance RuntimeObject) (ctrl.Result, errors.OperatorError)
+        + GetName() string
+        + Finalizers() []string
+    }
+
+    class RuntimeObject {
+        <<interface>>
+        + runtime.Object
+        + v1.Object
+    }
+
+    LifecycleManager "1" --> "0..*" Subroutine : uses
+    LifecycleManager "1" --> "1" RuntimeObject : interacts with
+```
+
 ### Usage
 
 The purpose of this library is to simplify the process of writing an operator. This is done in the user code by creating a subroutine and implementing the `Subroutine` interface:
 
 ```go
+const (
+    ExtensionClassSubroutineName      = "ExtensionclassDeletionSubroutine"
+    ExtensionClassSubroutineCondition = "ExtensionClassReadyForDeletion"
+)
+
 // interface to implement
 type Subroutine interface {
 	Process(ctx context.Context, instance RuntimeObject) (ctrl.Result, errors.OperatorError)
@@ -29,19 +74,39 @@ type NewSubroutine struct {
 }
 
 func (r *NewSubroutine) GetName() string {
-	// TODO:...
+	return ExtensionClassSubroutineName
 }
 
 func (r *NewSubroutine) Finalize(ctx context.Context, runtimeObj lifecycle.RuntimeObject) (ctrl.Result, errors.OperatorError) {
-	// TODO:...
+	return ctrl.Result{}, nil
 }
 
 func (r *NewSubroutine) Finalizers() []string {
-	// TODO:...
+	return []string{config.ExtensionClassCleanupFinalizer}
 }
 
 func (r *NewSubroutine) Process(ctx context.Context, runtimeObj lifecycle.RuntimeObject) (ctrl.Result, errors.OperatorError) {
-	// TODO:...
+	extensionClass := runtimeObj.(*extensionsV1alpha1.ExtensionClass)
+    if extensionClass.Spec.Type == nil {
+        return ctrl.Result{}, nil
+    }
+
+    if labelDoesNotMatchExtensionType(extensionClass) {
+        extensionClass.Labels[extensionTypeLabelName] = string(*extensionClass.Spec.Type)
+        err := r.client.Update(ctx, extensionClass)
+        if err != nil {
+            r.conditionsSetter.SetFalse(
+            extensionClass.ObjectMeta,
+            &extensionClass.Status.Conditions,
+            "KubernetesClientError",
+            "Unable to update extensions class label dxp.sap.com/extensionType",
+        )
+
+        return ctrl.Result{}, errors.NewOperatorError(err, true, true)
+        }
+    }
+
+    return ctrl.Result{}, nil
 }
 ```
 
