@@ -33,8 +33,7 @@ type WebToken struct {
 
 // New retrieves a new WebToken from an id_token string provided by OpenID communication
 // When not able to parse or deserialize the requested claims, it will return an error
-func New(idToken string) (webToken WebToken, err error) {
-	signatureAlgorithms := []jose.SignatureAlgorithm{jose.HS256}
+func New(idToken string, signatureAlgorithms []jose.SignatureAlgorithm) (webToken WebToken, err error) {
 	token, parseErr := jwt.ParseSigned(idToken, signatureAlgorithms)
 	if parseErr != nil {
 		err = fmt.Errorf("unable to parse id_token: [%s], %w", idToken, err)

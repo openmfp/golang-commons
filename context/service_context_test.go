@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/go-jose/go-jose/v4"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 
@@ -13,6 +14,8 @@ import (
 )
 
 type astruct struct{}
+
+var signatureAlgorithms = []jose.SignatureAlgorithm{jose.HS256}
 
 func TestAddSpiffeToContext(t *testing.T) {
 	t.Parallel()
@@ -113,7 +116,7 @@ func TestAddWebTokenToContext(t *testing.T) {
 	tokenString, err := generateJWT(issuer)
 	assert.NoError(t, err)
 
-	ctx = openmfpctx.AddWebTokenToContext(ctx, tokenString)
+	ctx = openmfpctx.AddWebTokenToContext(ctx, tokenString, signatureAlgorithms)
 
 	token, err := openmfpctx.GetWebTokenFromContext(ctx)
 	assert.Nil(t, err)
@@ -136,7 +139,7 @@ func TestAddWebTokenToContextWrongToken(t *testing.T) {
 	initialContext := context.Background()
 	tokenString := "not-a-token"
 
-	ctx := openmfpctx.AddWebTokenToContext(initialContext, tokenString)
+	ctx := openmfpctx.AddWebTokenToContext(initialContext, tokenString, signatureAlgorithms)
 
 	assert.Equal(t, initialContext, ctx)
 }

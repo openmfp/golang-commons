@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/go-jose/go-jose/v4"
+
 	"github.com/openmfp/golang-commons/context/keys"
 	"github.com/openmfp/golang-commons/jwt"
 	"github.com/openmfp/golang-commons/logger"
@@ -55,8 +57,8 @@ func GetAuthHeaderFromContext(ctx context.Context) (string, error) {
 	return auth, nil
 }
 
-func AddWebTokenToContext(ctx context.Context, idToken string) context.Context {
-	token, err := jwt.New(idToken)
+func AddWebTokenToContext(ctx context.Context, idToken string, signatureAlgorithms []jose.SignatureAlgorithm) context.Context {
+	token, err := jwt.New(idToken, signatureAlgorithms)
 	if err != nil {
 		logger.StdLogger.Error().Err(err).Msg("cannot add given id_token to context")
 		return ctx
