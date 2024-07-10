@@ -88,24 +88,10 @@ func (r *NewSubroutine) Finalizers() []string {
 func (r *NewSubroutine) Process(ctx context.Context, runtimeObj lifecycle.RuntimeObject) (ctrl.Result, errors.OperatorError) {
 	extensionClass := runtimeObj.(*extensionsV1alpha1.ExtensionClass)
     if extensionClass.Spec.Type == nil {
-        return ctrl.Result{}, nil
+        return ctrl.Result{}, errors.NewOperatorError(errors.New("ExtensionClass type is not set"), true, false)
     }
-
-    if labelDoesNotMatchExtensionType(extensionClass) {
-        extensionClass.Labels[extensionTypeLabelName] = string(*extensionClass.Spec.Type)
-        err := r.client.Update(ctx, extensionClass)
-        if err != nil {
-            r.conditionsSetter.SetFalse(
-            extensionClass.ObjectMeta,
-            &extensionClass.Status.Conditions,
-            "KubernetesClientError",
-            "Unable to update extensions class label dxp.sap.com/extensionType",
-        )
-
-        return ctrl.Result{}, errors.NewOperatorError(err, true, true)
-        }
-    }
-
+    // do something
+	
     return ctrl.Result{}, nil
 }
 ```
