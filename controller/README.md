@@ -16,19 +16,7 @@ Packages:
 ```mermaid
 classDiagram
     class LifecycleManager {
-        - log *logger.Logger
-        - client client.Client
-        - subroutines []Subroutine
-        - operatorName string
-        - controllerName string
-        - spreadReconciles bool
-        - manageConditions bool
         + Reconcile(ctx context.Context, req ctrl.Request, instance RuntimeObject) (ctrl.Result, error)
-        + markResourceAsFinal(instance RuntimeObject, log *logger.Logger, conditions []v1.Condition, status v1.ConditionStatus) error
-        + handleClientError(msg string, log *logger.Logger, err error, sentryTags sentry.Tags) (ctrl.Result, error)
-        + reconcileSubroutine(ctx context.Context, instance RuntimeObject, subroutine Subroutine, log *logger.Logger, sentryTags map[string]string) (ctrl.Result, bool, error)
-        + removeFinalizerIfNeeded(ctx context.Context, instance RuntimeObject, subroutine Subroutine, result ctrl.Result) errors.OperatorError
-        + addFinalizerIfNeeded(ctx context.Context, instance RuntimeObject, subroutine Subroutine) errors.OperatorError
         + SetupWithManager(mgr ctrl.Manager, maxReconciles int, reconcilerName string, instance RuntimeObject, debugLabelValue string, r reconcile.Reconciler, log *logger.Logger, eventPredicates ...predicate.Predicate) error
         + NewLifecycleManager(log *logger.Logger, operatorName string, controllerName string, client client.Client, subroutines []Subroutine) *LifecycleManager
     }
