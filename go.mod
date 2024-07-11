@@ -4,7 +4,7 @@ go 1.22.3
 
 require (
 	github.com/99designs/gqlgen v0.17.49
-	github.com/getsentry/sentry-go v0.28.0
+	github.com/getsentry/sentry-go v0.28.1
 	github.com/go-jose/go-jose/v4 v4.0.3
 	github.com/go-logr/logr v1.4.2
 	github.com/go-logr/zerologr v1.2.3
