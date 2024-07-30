@@ -12,25 +12,24 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type FgaTenantStore interface {
+type FGAStoreHelper interface {
 	GetStoreIDForTenant(ctx context.Context, conn openfgav1.OpenFGAServiceClient, tenantID string) (string, error)
 	GetModelIDForTenant(ctx context.Context, conn openfgav1.OpenFGAServiceClient, tenantID string) (string, error)
 	IsDuplicateWriteError(err error) bool
-	GetCache() *expirable.LRU[string, string]
 }
 
-type CacheStore struct {
+type FgaTenantStore struct {
 	cache *expirable.LRU[string, string]
-	FgaTenantStore
+	FGAStoreHelper
 }
 
-func New() *CacheStore {
-	return &CacheStore{
+func New() *FgaTenantStore {
+	return &FgaTenantStore{
 		cache: expirable.NewLRU[string, string](10, nil, 10*time.Minute),
 	}
 }
 
-func (c *CacheStore) GetStoreIDForTenant(ctx context.Context, conn openfgav1.OpenFGAServiceClient, tenantID string) (string, error) {
+func (c *FgaTenantStore) GetStoreIDForTenant(ctx context.Context, conn openfgav1.OpenFGAServiceClient, tenantID string) (string, error) {
 
 	cacheKey := "tenant-" + tenantID
 	s, ok := c.cache.Get(cacheKey)
@@ -54,7 +53,7 @@ func (c *CacheStore) GetStoreIDForTenant(ctx context.Context, conn openfgav1.Ope
 	return store.Id, nil
 }
 
-func (c *CacheStore) GetModelIDForTenant(ctx context.Context, conn openfgav1.OpenFGAServiceClient, tenantID string) (string, error) {
+func (c *FgaTenantStore) GetModelIDForTenant(ctx context.Context, conn openfgav1.OpenFGAServiceClient, tenantID string) (string, error) {
 
 	cacheKey := "model-" + tenantID
 	s, ok := c.cache.Get(cacheKey)
@@ -82,7 +81,7 @@ func (c *CacheStore) GetModelIDForTenant(ctx context.Context, conn openfgav1.Ope
 	return modelID, nil
 }
 
-func (c *CacheStore) IsDuplicateWriteError(err error) bool {
+func (c *FgaTenantStore) IsDuplicateWriteError(err error) bool {
 	if err == nil {
 		return false
 	}
@@ -91,6 +90,6 @@ func (c *CacheStore) IsDuplicateWriteError(err error) bool {
 	return ok && int32(s.Code()) == int32(openfgav1.ErrorCode_write_failed_due_to_invalid_input)
 }
 
-func (c *CacheStore) GetCache() *expirable.LRU[string, string] {
+func (c *FgaTenantStore) getCache() *expirable.LRU[string, string] {
 	return c.cache
 }
