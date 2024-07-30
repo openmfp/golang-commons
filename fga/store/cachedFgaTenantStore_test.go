@@ -21,13 +21,13 @@ func TestGetModelIDForTenant(t *testing.T) {
 
 	tests := []struct {
 		name            string
-		setupMock       func(client *mocks.OpenFGAServiceClient, cachedStore *CachedFgaTenantStore)
+		setupMock       func(client *mocks.OpenFGAServiceClient, cachedStore *Service)
 		expectedModelID string
 		expectedError   error
 	}{
 		{
 			name: "FullPath_OK",
-			setupMock: func(client *mocks.OpenFGAServiceClient, cachedStore *CachedFgaTenantStore) {
+			setupMock: func(client *mocks.OpenFGAServiceClient, cachedStore *Service) {
 				client.EXPECT().
 					ListStores(ctx, &openfgav1.ListStoresRequest{}).
 					Return(&openfgav1.ListStoresResponse{
@@ -49,7 +49,7 @@ func TestGetModelIDForTenant(t *testing.T) {
 		},
 		{
 			name: "HitGetModelIDForTenantCache_OK",
-			setupMock: func(client *mocks.OpenFGAServiceClient, cachedStore *CachedFgaTenantStore) {
+			setupMock: func(client *mocks.OpenFGAServiceClient, cachedStore *Service) {
 				cachedStore.GetCache().Add("model-tenant123", modelId)
 			},
 			expectedModelID: modelId,
@@ -57,7 +57,7 @@ func TestGetModelIDForTenant(t *testing.T) {
 		},
 		{
 			name: "HitGetStoreIDForTenantCache_OK",
-			setupMock: func(client *mocks.OpenFGAServiceClient, cachedStore *CachedFgaTenantStore) {
+			setupMock: func(client *mocks.OpenFGAServiceClient, cachedStore *Service) {
 				cachedStore.GetCache().Add("tenant-tenant123", storeId)
 
 				client.EXPECT().
@@ -73,7 +73,7 @@ func TestGetModelIDForTenant(t *testing.T) {
 		},
 		{
 			name: "ListStores_Error",
-			setupMock: func(client *mocks.OpenFGAServiceClient, cachedStore *CachedFgaTenantStore) {
+			setupMock: func(client *mocks.OpenFGAServiceClient, cachedStore *Service) {
 				client.EXPECT().
 					ListStores(ctx, &openfgav1.ListStoresRequest{}).
 					Return(nil, assert.AnError).
@@ -83,7 +83,7 @@ func TestGetModelIDForTenant(t *testing.T) {
 		},
 		{
 			name: "MatchingKeyNotFound_Error",
-			setupMock: func(client *mocks.OpenFGAServiceClient, cachedStore *CachedFgaTenantStore) {
+			setupMock: func(client *mocks.OpenFGAServiceClient, cachedStore *Service) {
 				client.EXPECT().
 					ListStores(ctx, &openfgav1.ListStoresRequest{}).
 					Return(&openfgav1.ListStoresResponse{Stores: []*openfgav1.Store{}}, nil).
@@ -93,7 +93,7 @@ func TestGetModelIDForTenant(t *testing.T) {
 		},
 		{
 			name: "ReadAuthorizationModels_Error",
-			setupMock: func(client *mocks.OpenFGAServiceClient, cachedStore *CachedFgaTenantStore) {
+			setupMock: func(client *mocks.OpenFGAServiceClient, cachedStore *Service) {
 				cachedStore.GetCache().Add("tenant-tenant123", storeId)
 
 				client.EXPECT().
@@ -105,7 +105,7 @@ func TestGetModelIDForTenant(t *testing.T) {
 		},
 		{
 			name: "NoReadAuthorizationModels_Error",
-			setupMock: func(client *mocks.OpenFGAServiceClient, cachedStore *CachedFgaTenantStore) {
+			setupMock: func(client *mocks.OpenFGAServiceClient, cachedStore *Service) {
 				cachedStore.GetCache().Add("tenant-tenant123", storeId)
 
 				client.EXPECT().
