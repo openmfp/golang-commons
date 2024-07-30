@@ -1,4 +1,4 @@
-package cache
+package store
 
 import (
 	"context"
@@ -120,7 +120,7 @@ func TestGetModelIDForTenant(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			client := &mocks.OpenFGAServiceClient{}
-			cachedStore := NewCachedFgaHelper()
+			cachedStore := New()
 			tt.setupMock(client, cachedStore)
 
 			modelID, err := cachedStore.GetModelIDForTenant(ctx, client, tenantID)
@@ -154,17 +154,12 @@ func TestIsDuplicateWriteError(t *testing.T) {
 			err:      status.Error(codes.InvalidArgument, "invalid argument"),
 			expected: false,
 		},
-		//{
-		//	name:     "DuplicateWriteGRPCError",
-		//	err:      status.Error(codes.InvalidArgument, openfgav1.ErrorCode_write_failed_due_to_invalid_input.String()),
-		//	expected: true,
-		//},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			cachedStore := NewCachedFgaHelper()
+			cachedStore := New()
 
 			result := cachedStore.IsDuplicateWriteError(tt.err)
 			assert.Equal(t, tt.expected, result)

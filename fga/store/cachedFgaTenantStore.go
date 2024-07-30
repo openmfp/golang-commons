@@ -1,4 +1,4 @@
-package cache
+package store
 
 import (
 	"context"
@@ -12,11 +12,19 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type CachedFgaTenantStore struct {
-	cache *expirable.LRU[string, string]
+type FgaTenantStore interface {
+	GetStoreIDForTenant(ctx context.Context, conn openfgav1.OpenFGAServiceClient, tenantID string) (string, error)
+	GetModelIDForTenant(ctx context.Context, conn openfgav1.OpenFGAServiceClient, tenantID string) (string, error)
+	IsDuplicateWriteError(err error) bool
+	GetCache() *expirable.LRU[string, string]
 }
 
-func NewCachedFgaHelper() *CachedFgaTenantStore {
+type CachedFgaTenantStore struct {
+	cache *expirable.LRU[string, string]
+	FgaTenantStore
+}
+
+func New() *CachedFgaTenantStore {
 	return &CachedFgaTenantStore{
 		cache: expirable.NewLRU[string, string](10, nil, 10*time.Minute),
 	}
