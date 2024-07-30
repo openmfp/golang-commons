@@ -91,6 +91,6 @@ func (c *FgaTenantStore) IsDuplicateWriteError(err error) bool {
 	return ok && int32(s.Code()) == int32(openfgav1.ErrorCode_write_failed_due_to_invalid_input)
 }
 
-func (c *FgaTenantStore) getCache() *expirable.LRU[string, string] {
+func (c *FgaTenantStore) GetCache() *expirable.LRU[string, string] {
 	return c.cache
 }
