@@ -19,18 +19,18 @@ type FgaTenantStore interface {
 	GetCache() *expirable.LRU[string, string]
 }
 
-type Service struct {
+type CacheStore struct {
 	cache *expirable.LRU[string, string]
 	FgaTenantStore
 }
 
-func New() *Service {
-	return &Service{
+func New() *CacheStore {
+	return &CacheStore{
 		cache: expirable.NewLRU[string, string](10, nil, 10*time.Minute),
 	}
 }
 
-func (c *Service) GetStoreIDForTenant(ctx context.Context, conn openfgav1.OpenFGAServiceClient, tenantID string) (string, error) {
+func (c *CacheStore) GetStoreIDForTenant(ctx context.Context, conn openfgav1.OpenFGAServiceClient, tenantID string) (string, error) {
 
 	cacheKey := "tenant-" + tenantID
 	s, ok := c.cache.Get(cacheKey)
@@ -54,7 +54,7 @@ func (c *Service) GetStoreIDForTenant(ctx context.Context, conn openfgav1.OpenFG
 	return store.Id, nil
 }
 
-func (c *Service) GetModelIDForTenant(ctx context.Context, conn openfgav1.OpenFGAServiceClient, tenantID string) (string, error) {
+func (c *CacheStore) GetModelIDForTenant(ctx context.Context, conn openfgav1.OpenFGAServiceClient, tenantID string) (string, error) {
 
 	cacheKey := "model-" + tenantID
 	s, ok := c.cache.Get(cacheKey)
@@ -82,7 +82,7 @@ func (c *Service) GetModelIDForTenant(ctx context.Context, conn openfgav1.OpenFG
 	return modelID, nil
 }
 
-func (c *Service) IsDuplicateWriteError(err error) bool {
+func (c *CacheStore) IsDuplicateWriteError(err error) bool {
 	if err == nil {
 		return false
 	}
@@ -91,6 +91,6 @@ func (c *Service) IsDuplicateWriteError(err error) bool {
 	return ok && int32(s.Code()) == int32(openfgav1.ErrorCode_write_failed_due_to_invalid_input)
 }
 
-func (c *Service) GetCache() *expirable.LRU[string, string] {
+func (c *CacheStore) GetCache() *expirable.LRU[string, string] {
 	return c.cache
 }
