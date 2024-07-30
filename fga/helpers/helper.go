@@ -74,7 +74,3 @@ func IsDuplicateWriteError(err error) bool {
 	s, ok := status.FromError(err)
 	return ok && int32(s.Code()) == int32(openfgav1.ErrorCode_write_failed_due_to_invalid_input)
 }
-
-func ResetCache() {
-	cache.Purge()
-}

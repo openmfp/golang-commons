@@ -17,92 +17,6 @@ func TestGetModelIDForTenant(t *testing.T) {
 	ctx := context.Background()
 	tenantID := "tenant123"
 	storeId := "store123"
-
-	tests := []struct {
-		name            string
-		setupMock       func(client *mocks.OpenFGAServiceClient)
-		expectedModelID string
-		expectedError   error
-	}{
-		{
-			name: "CacheReset_OK",
-			setupMock: func(client *mocks.OpenFGAServiceClient) {
-				client.EXPECT().
-					ListStores(ctx, &openfgav1.ListStoresRequest{}).
-					Return(&openfgav1.ListStoresResponse{
-						Stores: []*openfgav1.Store{
-							{Id: "store123", Name: "tenant-tenant123"},
-						}}, nil).
-					Times(0)
-
-			},
-			expectedModelID: storeId,
-			expectedError:   nil,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cache.Purge() // Clear cache before each test
-
-			client := &mocks.OpenFGAServiceClient{}
-			tt.setupMock(client)
-
-			modelID1, err := GetStoreIDForTenant(ctx, client, tenantID)
-			assert.Nil(t, err)
-			ResetCache()
-			modelID2, err := GetStoreIDForTenant(ctx, client, tenantID)
-			assert.Nil(t, err)
-
-			assert.Equal(t, tt.expectedModelID, modelID1)
-			assert.Equal(t, tt.expectedModelID, modelID2)
-			assert.Equal(t, tt.expectedError, err)
-
-			client.AssertExpectations(t)
-		})
-	}
-}
-
-func TestIsDuplicateWriteError(t *testing.T) {
-	tests := []struct {
-		name     string
-		err      error
-		expected bool
-	}{
-		{
-			name:     "NoError",
-			err:      nil,
-			expected: false,
-		},
-		{
-			name:     "NonGRPCError",
-			err:      errors.New("some error"),
-			expected: false,
-		},
-		{
-			name:     "NonDuplicateWriteGRPCError",
-			err:      status.Error(codes.InvalidArgument, "invalid argument"),
-			expected: false,
-		},
-		//{
-		//	name:     "DuplicateWriteGRPCError",
-		//	err:      status.Error(codes.InvalidArgument, openfgav1.ErrorCode_write_failed_due_to_invalid_input.String()),
-		//	expected: true,
-		//},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := IsDuplicateWriteError(tt.err)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
-func TestResetCache(t *testing.T) {
-	ctx := context.Background()
-	tenantID := "tenant123"
-	storeId := "store123"
 	modelId := "model123"
 
 	tests := []struct {
@@ -216,6 +130,42 @@ func TestResetCache(t *testing.T) {
 			assert.Equal(t, tt.expectedError, err)
 
 			client.AssertExpectations(t)
+		})
+	}
+}
+
+func TestIsDuplicateWriteError(t *testing.T) {
+	tests := []struct {
+		name     string
+		err      error
+		expected bool
+	}{
+		{
+			name:     "NoError",
+			err:      nil,
+			expected: false,
+		},
+		{
+			name:     "NonGRPCError",
+			err:      errors.New("some error"),
+			expected: false,
+		},
+		{
+			name:     "NonDuplicateWriteGRPCError",
+			err:      status.Error(codes.InvalidArgument, "invalid argument"),
+			expected: false,
+		},
+		//{
+		//	name:     "DuplicateWriteGRPCError",
+		//	err:      status.Error(codes.InvalidArgument, openfgav1.ErrorCode_write_failed_due_to_invalid_input.String()),
+		//	expected: true,
+		//},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := IsDuplicateWriteError(tt.err)
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
