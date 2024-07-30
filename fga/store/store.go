@@ -20,8 +20,9 @@ type FGAStoreHelper interface {
 
 type FgaTenantStore struct {
 	cache *expirable.LRU[string, string]
-	FGAStoreHelper
 }
+
+var _ FGAStoreHelper = (*FgaTenantStore)(nil)
 
 func New() *FgaTenantStore {
 	return &FgaTenantStore{
