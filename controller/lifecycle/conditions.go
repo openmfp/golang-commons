@@ -69,14 +69,12 @@ func setInstanceConditionUnknownIfNotSet(conditions *[]metav1.Condition) bool {
 }
 
 func setSubroutineConditionToUnknownIfNotSet(conditions *[]metav1.Condition, subroutine Subroutine, isFinalize bool, log *logger.Logger) bool {
-	conditionName := fmt.Sprintf(subroutineReadyConditionFormatString, subroutine.GetName())
-	if isFinalize {
-		conditionName = fmt.Sprintf(subroutineFinalizeConditionFormatString, subroutine.GetName())
-	}
+	conditionName, conditionMessage := getConditionNameAndMessage(subroutine, isFinalize)
+
 	existingCondition := meta.FindStatusCondition(*conditions, conditionName)
 	if existingCondition == nil {
 		changed := meta.SetStatusCondition(conditions,
-			metav1.Condition{Type: conditionName, Status: metav1.ConditionUnknown, Message: fmt.Sprintf(subroutineMessageProcessingFormatString, "subroutine finalization"), Reason: reasonProcessing})
+			metav1.Condition{Type: conditionName, Status: metav1.ConditionUnknown, Message: fmt.Sprintf(subroutineMessageProcessingFormatString, conditionMessage), Reason: reasonProcessing})
 		if changed {
 			log.Info().Str("type", conditionName).Msg("updated condition")
 		}
@@ -85,14 +83,19 @@ func setSubroutineConditionToUnknownIfNotSet(conditions *[]metav1.Condition, sub
 	return false
 }
 
-// Set Subroutines Conditions
-func setSubroutineCondition(conditions *[]metav1.Condition, subroutine Subroutine, subroutineResult ctrl.Result, subroutineErr error, isFinalize bool, log *logger.Logger) bool {
+func getConditionNameAndMessage(subroutine Subroutine, isFinalize bool) (string, string) {
 	conditionName := fmt.Sprintf(subroutineReadyConditionFormatString, subroutine.GetName())
 	conditionMessage := "subroutine"
 	if isFinalize {
 		conditionName = fmt.Sprintf(subroutineFinalizeConditionFormatString, subroutine.GetName())
 		conditionMessage = "subroutine finalization"
 	}
+	return conditionName, conditionMessage
+}
+
+// Set Subroutines Conditions
+func setSubroutineCondition(conditions *[]metav1.Condition, subroutine Subroutine, subroutineResult ctrl.Result, subroutineErr error, isFinalize bool, log *logger.Logger) bool {
+	conditionName, conditionMessage := getConditionNameAndMessage(subroutine, isFinalize)
 
 	// processing complete
 	if subroutineErr == nil && !subroutineResult.Requeue && subroutineResult.RequeueAfter == 0 {

@@ -90,17 +90,36 @@ func TestSetSubroutineConditionToUnknownIfNotSet(t *testing.T) {
 	log, err := logger.New(logger.DefaultConfig())
 	require.NoError(t, err)
 
-	t.Run("TestSetSubroutineConditionToUnknownIfNotSet with empty array", func(t *testing.T) {
-		// Given
-		condition := []metav1.Condition{}
+	unknownTests := []struct {
+		Name         string
+		WantsMessage string
+		IsFinalize   bool
+	}{
+		{
+			Name:         "TestSetSubroutineConditionToUnknownIfNotSet with empty array and finalize false",
+			IsFinalize:   false,
+			WantsMessage: "The subroutine is processing",
+		},
+		{
+			Name:         "TestSetSubroutineConditionToUnknownIfNotSet with empty array and finalize true",
+			IsFinalize:   true,
+			WantsMessage: "The subroutine finalization is processing",
+		},
+	}
+	for _, tt := range unknownTests {
+		t.Run(tt.Name, func(t *testing.T) {
+			// Given
+			condition := []metav1.Condition{}
 
-		// When
-		setSubroutineConditionToUnknownIfNotSet(&condition, changeStatusSubroutine{}, false, log)
+			// When
+			setSubroutineConditionToUnknownIfNotSet(&condition, changeStatusSubroutine{}, tt.IsFinalize, log)
 
-		// Then
-		assert.Equal(t, 1, len(condition))
-		assert.Equal(t, metav1.ConditionUnknown, condition[0].Status)
-	})
+			// Then
+			assert.Equal(t, 1, len(condition))
+			assert.Equal(t, metav1.ConditionUnknown, condition[0].Status)
+			assert.Equal(t, tt.WantsMessage, condition[0].Message)
+		})
+	}
 
 	t.Run("TestSetSubroutineConditionToUnknownIfNotSet with existing condition", func(t *testing.T) {
 		// Given

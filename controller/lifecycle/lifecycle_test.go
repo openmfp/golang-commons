@@ -731,7 +731,7 @@ func TestLifecycle(t *testing.T) {
 		assert.Equal(t, "The resource is not ready", instance.Status.Conditions[0].Message)
 		assert.Equal(t, "failureScenarioSubroutine_Ready", instance.Status.Conditions[1].Type)
 		assert.Equal(t, metav1.ConditionUnknown, instance.Status.Conditions[1].Status)
-		assert.Equal(t, "The subroutine finalization is processing", instance.Status.Conditions[1].Message)
+		assert.Equal(t, "The subroutine is processing", instance.Status.Conditions[1].Message)
 	})
 
 	t.Run("Lifecycle with manage conditions reconciles with Error subroutine (no-retry)", func(t *testing.T) {
