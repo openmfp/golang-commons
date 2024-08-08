@@ -12,9 +12,9 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/jellydator/ttlcache/v3 v3.2.0
-	github.com/openfga/api/proto v0.0.0-20240723155248-7e5be7b65c27
+	github.com/openfga/api/proto v0.0.0-20240807201305-c96ec773cae9
 	github.com/openfga/language/pkg/go v0.0.0-20240409225820-a53ea2892d6d
-	github.com/openfga/openfga v1.5.7
+	github.com/openfga/openfga v1.5.8
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.33.0
 	github.com/stretchr/testify v1.9.0
