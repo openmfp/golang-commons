@@ -63,3 +63,9 @@ func TestComponentLogger(t *testing.T) {
 	componentLogger.Level(1).Debug().Msg("test")
 	componentLogger.Logr().Info("test")
 }
+
+func TestChildLoggerWithAttributes(t *testing.T) {
+	logger, _ := New(DefaultConfig())
+	_, err := logger.ChildLoggerWithAttributes("key", "value")
+	assert.NoError(t, err)
+}

@@ -1,0 +1,10 @@
+with-expecter: true
+packages:
+  github.com/openmfp/golang-commons/fga/store:
+    config:
+      dir: fga/store/mocks
+      outpkg: mocks
+    interfaces:
+      FGAStoreHelper:
+        config:
+          mockname: FGAStoreHelper
