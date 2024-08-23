@@ -15,7 +15,7 @@ require (
 	github.com/jellydator/ttlcache/v3 v3.2.0
 	github.com/machinebox/graphql v0.2.2
 	github.com/openfga/api/proto v0.0.0-20240723155248-7e5be7b65c27
-	github.com/openfga/language/pkg/go v0.0.0-20240409225820-a53ea2892d6d
+	github.com/openfga/language/pkg/go v0.2.0-beta.0
 	github.com/openfga/openfga v1.5.7
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.33.0
