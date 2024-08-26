@@ -31,6 +31,14 @@ All the released versions will be available through access to GitHub (as any oth
 
 golang-commons requires a installation of go. Checkout the [go.mod](go.mod) for the required go version.
 
+## Mocks
+
+golang commons uses mockery for mocking. If mock is absent, you can update `.mockery.yaml` file by adding the missing mock. Then run the following command to generate the mock files:
+```
+task mockery
+``` 
+P.S. If you have golang installed, it automatically installs the mockery binary in `golang-commons/bin` directory.
+
 ## Contributing
 
 Please refer to the [CONTRIBUTING.md](CONTRIBUTING.md) file in this repository for instructions on how to contribute to openMFP.

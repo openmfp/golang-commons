@@ -8,3 +8,11 @@ packages:
       FGAStoreHelper:
         config:
           mockname: FGAStoreHelper
+  github.com/openmfp/golang-commons/policy_services:
+    config:
+      dir: fga/policy_services/mocks
+      outpkg: mocks
+    interfaces:
+      TenantIdReader:
+        config:
+          mockname: TenantIdReader
