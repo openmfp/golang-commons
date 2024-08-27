@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/golang-lru/v2/expirable"
@@ -73,4 +74,9 @@ func IsDuplicateWriteError(err error) bool {
 
 	s, ok := status.FromError(err)
 	return ok && int32(s.Code()) == int32(openfgav1.ErrorCode_write_failed_due_to_invalid_input)
+}
+
+// Sanitizes the userID by replacing all colons with underscores to also enable the use of kubernetes service accounts
+func SanitizeUserID(userID string) string {
+	return strings.ReplaceAll(userID, ":", "_")
 }

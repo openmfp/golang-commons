@@ -169,3 +169,23 @@ func TestIsDuplicateWriteError(t *testing.T) {
 		})
 	}
 }
+
+func TestSanitizeUserID(t *testing.T) {
+	tests := []struct {
+		name string
+		in   string
+		out  string
+	}{
+		{
+			name: "should remove all colons",
+			in:   "system:serviceaccount:default:default",
+			out:  "system_serviceaccount_default_default",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			out := SanitizeUserID(test.in)
+			assert.Equal(t, test.out, out)
+		})
+	}
+}
