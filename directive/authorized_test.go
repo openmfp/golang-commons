@@ -1,0 +1,265 @@
+package directive
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"testing"
+
+	"github.com/99designs/gqlgen/graphql"
+	"github.com/go-jose/go-jose/v4"
+	openfgav1 "github.com/openfga/api/proto/openfga/v1"
+	openmfpcontext "github.com/openmfp/golang-commons/context"
+	logger "github.com/openmfp/golang-commons/logger/testlogger"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/vektah/gqlparser/v2/gqlerror"
+
+	"github.com/openmfp/golang-commons/directive/mocks"
+)
+
+const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+
+var signatureAlgorithms = []jose.SignatureAlgorithm{jose.HS256}
+
+func String(s string) *string { return &s }
+
+func TestAuthorized(t *testing.T) {
+	directiveConfiguration.DirectivesAuthorizationEnabled = true
+	testCases := []struct {
+		name                string
+		relation            string
+		entityID            string
+		entityParamName     string
+		entityType          *string
+		entityTypeParamName *string
+		isTechnicalUser     bool
+		graphqlArgs         map[string]any
+		fgaMocks            func(s *mocks.OpenFGAServiceClient)
+		expectedError       error
+	}{
+		{
+			name:            "should error if the entityParamName is not part of the arguments",
+			entityParamName: "non-existent",
+			graphqlArgs:     map[string]any{},
+			expectedError:   fmt.Errorf("unable to extract param from request for given paramName %q", "non-existent"),
+		},
+		{
+			name:            "should error if the entityParamName is not part of the arguments for a nested value",
+			entityParamName: "non-existent.nested",
+			graphqlArgs: map[string]any{
+				"non-existent": map[string]interface{}{},
+			},
+			expectedError: fmt.Errorf("unable to extract param from request for given paramName %q", "non-existent.nested"),
+		},
+		{
+			name:            "should error if the entityParamName has the wrong type for a nested value",
+			entityParamName: "non-existent.nested",
+			graphqlArgs: map[string]any{
+				"non-existent": "something wrong",
+			},
+			expectedError: fmt.Errorf("unable to extract param from request for given paramName %q, param is of wrong type", "non-existent.nested"),
+		},
+		{
+			name:            "should error if the entityParamName has the wrong type for a nested value",
+			entityParamName: "non-existent.nested",
+			graphqlArgs: map[string]any{
+				"non-existent": map[string]any{
+					"nested": map[string]any{},
+				},
+			},
+			expectedError: fmt.Errorf("unable to extract param from request for given paramName %q, param is of wrong type", "non-existent.nested"),
+		},
+		{
+			name:            "should error if the entityTypeParamName is set and not part of the arguments",
+			entityParamName: "existent",
+			graphqlArgs: map[string]any{
+				"existent": "something",
+			},
+			entityTypeParamName: String("non-existent"),
+			expectedError:       fmt.Errorf("unable to extract param from request for given paramName %q", "non-existent"),
+		},
+		{
+			name:            "should error if the entityType is set and but emtpy",
+			entityParamName: "existent",
+			entityType:      String(""),
+			graphqlArgs: map[string]any{
+				"existent": "something",
+				"emtpy":    "",
+			},
+			expectedError: errors.New("make sure to either provide entityType or entityTypeParamName"),
+		},
+		{
+			name:            "should error if the request is not allowed",
+			entityParamName: "existent",
+			entityType:      String("value"),
+			graphqlArgs: map[string]any{
+				"existent": "something",
+			},
+			fgaMocks: func(s *mocks.OpenFGAServiceClient) {
+				s.EXPECT().ListStores(mock.Anything, mock.Anything).Return(&openfgav1.ListStoresResponse{
+					Stores: []*openfgav1.Store{
+						{
+							Name: "tenant-tenant-id",
+						},
+					},
+				}, nil)
+				s.EXPECT().ReadAuthorizationModels(mock.Anything, mock.Anything).Return(&openfgav1.ReadAuthorizationModelsResponse{
+					AuthorizationModels: []*openfgav1.AuthorizationModel{
+						{
+							Id: "id",
+						},
+					},
+				}, nil)
+				s.EXPECT().Check(mock.Anything, mock.Anything).Return(&openfgav1.CheckResponse{Allowed: false}, nil)
+			},
+			expectedError: gqlerror.Errorf("unauthorized"),
+		},
+		{
+			name:            "should allow the request and be happy",
+			entityParamName: "existent",
+			entityType:      String("value"),
+			graphqlArgs: map[string]any{
+				"existent": "something",
+			},
+			fgaMocks: func(s *mocks.OpenFGAServiceClient) {
+				s.EXPECT().ListStores(mock.Anything, mock.Anything).Return(&openfgav1.ListStoresResponse{
+					Stores: []*openfgav1.Store{
+						{
+							Name: "tenant-tenant-id",
+						},
+					},
+				}, nil)
+				s.EXPECT().Check(mock.Anything, mock.Anything).Return(&openfgav1.CheckResponse{Allowed: true}, nil)
+			},
+		},
+		{
+			name:            "should allow the request and be happy with nested entityParamName",
+			entityParamName: "nested.value",
+			entityType:      String("value"),
+			graphqlArgs: map[string]any{
+				"nested": map[string]interface{}{
+					"value": "something",
+				},
+			},
+			fgaMocks: func(s *mocks.OpenFGAServiceClient) {
+				s.EXPECT().ListStores(mock.Anything, mock.Anything).Return(&openfgav1.ListStoresResponse{
+					Stores: []*openfgav1.Store{
+						{
+							Name: "tenant-tenant-id",
+						},
+					},
+				}, nil)
+				s.EXPECT().Check(mock.Anything, mock.Anything).Return(&openfgav1.CheckResponse{Allowed: true}, nil)
+			},
+		},
+		{
+			name:            "should allow the request and be happy with super nested entityParamName",
+			entityParamName: "nested.value.stuff",
+			entityType:      String("value"),
+			graphqlArgs: map[string]any{
+				"nested": map[string]interface{}{
+					"value": map[string]interface{}{
+						"stuff": "test",
+					},
+				},
+			},
+			fgaMocks: func(s *mocks.OpenFGAServiceClient) {
+				s.EXPECT().ListStores(mock.Anything, mock.Anything).Return(&openfgav1.ListStoresResponse{
+					Stores: []*openfgav1.Store{
+						{
+							Name: "tenant-tenant-id",
+						},
+					},
+				}, nil)
+				s.EXPECT().Check(mock.Anything, mock.Anything).Return(&openfgav1.CheckResponse{Allowed: true}, nil)
+			},
+		},
+		{
+			name:            "should allow the request and be happy for technical users",
+			entityParamName: "existent",
+			entityType:      String("value"),
+			isTechnicalUser: true,
+			graphqlArgs: map[string]any{
+				"existent": "something",
+				"tenantId": "tenant-id",
+			},
+			fgaMocks: func(s *mocks.OpenFGAServiceClient) {
+				s.EXPECT().ListStores(mock.Anything, mock.Anything).Return(&openfgav1.ListStoresResponse{
+					Stores: []*openfgav1.Store{
+						{
+							Name: "tenant-tenant-id",
+						},
+					},
+				}, nil)
+				s.EXPECT().Check(mock.Anything, mock.Anything).Return(&openfgav1.CheckResponse{Allowed: true}, nil)
+			},
+		},
+	}
+	for _, test := range testCases {
+		t.Run(test.name, func(t *testing.T) {
+
+			openfgaMock := mocks.NewOpenFGAServiceClient(t)
+			if test.fgaMocks != nil {
+				test.fgaMocks(openfgaMock)
+			}
+
+			nextFn := func(ctx context.Context) (interface{}, error) { return nil, nil }
+
+			log := logger.New()
+
+			ctx := context.Background()
+			ctx = graphql.WithFieldContext(ctx, &graphql.FieldContext{
+				Args: test.graphqlArgs,
+			})
+
+			if test.isTechnicalUser {
+				ctx = openmfpcontext.AddIsTechnicalIssuerToContext(ctx)
+			} else {
+				ctx = openmfpcontext.AddTenantToContext(ctx, "tenant-id")
+			}
+			ctx = openmfpcontext.AddWebTokenToContext(ctx, token, signatureAlgorithms)
+			ctx = openmfpcontext.AddAuthHeaderToContext(ctx, fmt.Sprintf("Bearer %s", token))
+
+			_, err := Authorized(openfgaMock, log.Logger)(ctx, nil, nextFn, test.relation, test.entityType, test.entityTypeParamName, test.entityParamName)
+			assert.Equal(t, test.expectedError, err)
+		})
+	}
+}
+
+func TestAuthorizedWithSpiffeeHeader(t *testing.T) {
+	directiveConfiguration.DirectivesAuthorizationEnabled = true
+
+	openfgaMock := mocks.NewOpenFGAServiceClient(t)
+
+	openfgaMock.EXPECT().ListStores(mock.Anything, mock.Anything).Return(&openfgav1.ListStoresResponse{
+		Stores: []*openfgav1.Store{
+			{
+				Name: "tenant-test",
+			},
+		},
+	}, nil)
+	openfgaMock.EXPECT().ReadAuthorizationModels(mock.Anything, mock.Anything).Return(&openfgav1.ReadAuthorizationModelsResponse{
+		AuthorizationModels: []*openfgav1.AuthorizationModel{
+			{
+				Id: "id",
+			},
+		},
+	}, nil)
+	openfgaMock.EXPECT().Check(mock.Anything, mock.Anything).Return(&openfgav1.CheckResponse{Allowed: true}, nil)
+
+	ctx := context.Background()
+
+	ctx = openmfpcontext.AddSpiffeToContext(ctx, "spiffe://cluster.local/test-spiffee")
+	ctx = graphql.WithFieldContext(ctx, &graphql.FieldContext{
+		Args: map[string]any{
+			"tenantId":  "test",
+			"projectId": "test",
+		},
+	})
+
+	nextFn := func(ctx context.Context) (interface{}, error) { return nil, nil }
+	_, err := Authorized(openfgaMock, logger.New().Logger)(ctx, nil, nextFn, "member", String("project"), nil, "projectId")
+	assert.NoError(t, err)
+
+}
