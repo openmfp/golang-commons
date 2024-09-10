@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/openmfp/golang-commons/context/keys"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
@@ -45,6 +46,13 @@ func TestNewRequestLoggerFromZeroLog(t *testing.T) {
 	assert.NotNil(t, logger)
 }
 
+func TestNewRequestLoggerFromZeroLogCtxWithValue(t *testing.T) {
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, keys.RequestIdCtxKey, "test")
+	logger := NewRequestLoggerFromZerolog(ctx, zerolog.New(os.Stdout))
+	assert.NotNil(t, logger)
+}
+
 func TestNewChildLoggerRequestLoggerFromZeroLog(t *testing.T) {
 	ctx := context.Background()
 	logger := NewRequestLoggerFromZerolog(ctx, zerolog.New(os.Stdout))
@@ -52,6 +60,12 @@ func TestNewChildLoggerRequestLoggerFromZeroLog(t *testing.T) {
 
 	childLogger := logger.ChildLogger("child", "my-child")
 	assert.NotNil(t, childLogger)
+}
+
+func TestNewWithUnknownLogLevel(t *testing.T) {
+	logger, err := New(Config{Level: "unknown"})
+	assert.Nil(t, logger)
+	assert.Error(t, err)
 }
 
 func TestComponentLogger(t *testing.T) {
@@ -68,4 +82,10 @@ func TestChildLoggerWithAttributes(t *testing.T) {
 	logger, _ := New(DefaultConfig())
 	_, err := logger.ChildLoggerWithAttributes("key", "value")
 	assert.NoError(t, err)
+}
+
+func TestMustChildLoggerWithAttributes(t *testing.T) {
+	logger, _ := New(DefaultConfig())
+	loggerAttributes := logger.MustChildLoggerWithAttributes("key", "value")
+	assert.NotNil(t, loggerAttributes)
 }
