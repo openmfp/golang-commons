@@ -1,6 +1,7 @@
 package testlogger
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/rs/zerolog"
@@ -19,7 +20,7 @@ func TestTestLogger(t *testing.T) {
 			messages, err := testLogger.GetLogMessages()
 
 			assert.NoError(t, err)
-			assert.Equal(t, len(messages), 0)
+			assert.Equal(t, 0, len(messages))
 		})
 
 		t.Run("two entries", func(t *testing.T) {
@@ -34,7 +35,7 @@ func TestTestLogger(t *testing.T) {
 
 			// Assert
 			assert.NoError(t, err)
-			assert.Equal(t, 2, len(messages))
+			assert.Equal(t, len(messages), 2)
 			assert.Equal(t, zerolog.InfoLevel, messages[0].Level)
 			assert.Equal(t, zerolog.DebugLevel, messages[1].Level)
 		})
@@ -55,7 +56,7 @@ func TestTestLogger(t *testing.T) {
 
 			// Assert
 			assert.NoError(t, err)
-			assert.Equal(t, len(messages), 1)
+			assert.Equal(t, 1, len(messages))
 			assert.Equal(t, zerolog.InfoLevel, messages[0].Level)
 			assert.Equal(t, "foo", messages[0].Message)
 			assert.Equal(t, (*string)(nil), messages[0].Error)
@@ -91,7 +92,7 @@ func TestTestLogger(t *testing.T) {
 			messages, err := testLogger.GetMessagesForLevel(logger.Level(zerolog.WarnLevel))
 
 			assert.NoError(t, err)
-			assert.Equal(t, len(messages), 2)
+			assert.Equal(t, 2, len(messages))
 			assert.Equal(t, messages[0].Message, "oh no")
 			assert.Equal(t, messages[1].Message, "two warnings")
 		})
@@ -107,25 +108,34 @@ func TestTestLogger(t *testing.T) {
 			testLogger.Logger.Info().Msg("foo")
 
 			assert.NoError(t, err)
-			assert.Equal(t, len(messages), 0)
+			assert.Equal(t, 0, len(messages))
 		})
 
-		t.Run("two errors", func(t *testing.T) {
-			// Arrange
-			testLogger := New()
+		testCases := []struct {
+			ErrorLevel zerolog.Level
+		}{
+			{ErrorLevel: zerolog.ErrorLevel},
+			{ErrorLevel: zerolog.PanicLevel},
+			{ErrorLevel: zerolog.FatalLevel},
+		}
+		for _, testcase := range testCases {
+			t.Run(fmt.Sprintf("two errors %s", testcase.ErrorLevel), func(t *testing.T) {
+				// Arrange
+				testLogger := New()
 
-			// Act
-			testLogger.Logger.Info().Msg("foo")
-			testLogger.Logger.Debug().Msg("bar")
-			testLogger.Logger.Error().Msg("oh no")
-			testLogger.Logger.Error().Msg("two errors")
+				// Act
+				testLogger.Logger.Info().Msg("foo")
+				testLogger.Logger.Debug().Msg("bar")
+				testLogger.Logger.WithLevel(testcase.ErrorLevel).Msg("oh no")
+				testLogger.Logger.WithLevel(testcase.ErrorLevel).Msg("two errors")
 
-			messages, err := testLogger.GetErrorMessages()
+				messages, err := testLogger.GetErrorMessages()
 
-			assert.NoError(t, err)
-			assert.Equal(t, len(messages), 2)
-			assert.Equal(t, messages[0].Message, "oh no")
-			assert.Equal(t, messages[1].Message, "two errors")
-		})
+				assert.NoError(t, err)
+				assert.Equal(t, 2, len(messages))
+				assert.Equal(t, messages[0].Message, "oh no")
+				assert.Equal(t, messages[1].Message, "two errors")
+			})
+		}
 	})
 }

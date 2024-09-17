@@ -65,6 +65,16 @@ func (l *TestLogger) GetLogMessages() ([]LogMessage, error) {
 }
 
 func (l *TestLogger) GetMessagesForLevel(level logger.Level) ([]LogMessage, error) {
+	return l.getMessagesForLevels(level)
+}
+
+// GetErrorMessages returns all log messages with error, fatal and panic level
+// If you only want a single of those levels, use GetMessagesForLevel instead
+func (l *TestLogger) GetErrorMessages() ([]LogMessage, error) {
+	return l.getMessagesForLevels(logger.Level(zerolog.ErrorLevel), logger.Level(zerolog.FatalLevel), logger.Level(zerolog.PanicLevel))
+}
+
+func (l *TestLogger) getMessagesForLevels(levels ...logger.Level) ([]LogMessage, error) {
 	messages, err := l.GetLogMessages()
 	if err != nil {
 		return nil, err
@@ -73,14 +83,17 @@ func (l *TestLogger) GetMessagesForLevel(level logger.Level) ([]LogMessage, erro
 	result := []LogMessage{}
 
 	for _, log := range messages {
-		if logger.Level(log.Level) != level {
+		shouldContinue := true
+		for _, lvl := range levels {
+			if logger.Level(log.Level) == lvl {
+				shouldContinue = false
+			}
+		}
+		if shouldContinue {
 			continue
 		}
+
 		result = append(result, log)
 	}
 	return result, nil
-}
-
-func (l *TestLogger) GetErrorMessages() ([]LogMessage, error) {
-	return l.GetMessagesForLevel(logger.Level(zerolog.ErrorLevel))
 }
