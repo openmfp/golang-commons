@@ -3,6 +3,8 @@ package testlogger
 import (
 	"bytes"
 	"encoding/json"
+	"io"
+	"os"
 	"strings"
 
 	"github.com/rs/zerolog"
@@ -16,17 +18,24 @@ type TestLogger struct {
 }
 
 // New returns a logger with an in memory buffer containing log messages for use in tests
+// The logger will write to stdout and the buffer, if you want to hide the log output use HideLogOutput
 func New() *TestLogger {
 	buf := &bytes.Buffer{}
 	cfg := logger.DefaultConfig()
 	cfg.Level = "debug"
-	cfg.Output = buf
+	cfg.Output = io.MultiWriter(buf, zerolog.ConsoleWriter{Out: os.Stderr})
 	l, _ := logger.New(cfg)
 
 	return &TestLogger{
 		Logger: l,
 		buffer: buf,
 	}
+}
+
+// HideLogOutput hides the log output from stdout and only logs to the in-memory buffer
+func (l *TestLogger) HideLogOutput() *TestLogger {
+	l.Logger = logger.NewFromZerolog(l.Output(l.buffer))
+	return l
 }
 
 type LogMessage struct {

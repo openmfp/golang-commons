@@ -25,7 +25,8 @@ func TestTestLogger(t *testing.T) {
 
 		t.Run("two entries", func(t *testing.T) {
 			// Arrange
-			testLogger := New()
+			// Hide Log output is hard to test, since the real stdout is hard to catch
+			testLogger := New().HideLogOutput()
 
 			// Act
 			testLogger.Logger.Info().Msg("foo")
