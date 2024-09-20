@@ -3,6 +3,7 @@ package lifecycle
 import (
 	"context"
 	"fmt"
+	"github.com/openmfp/golang-commons/context/keys"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -177,7 +178,7 @@ func (m *implementConditionsAndSpreadReconciles) SetNextReconcileTime(time metav
 type contextValueSubroutine struct {
 }
 
-const contextValueKey = "contextValueKey"
+const contextValueKey = keys.ContextKey("contextValueKey")
 
 func (f contextValueSubroutine) Process(ctx context.Context, r RuntimeObject) (controllerruntime.Result, errors.OperatorError) {
 	if instance, ok := r.(*testSupport.TestApiObject); ok {

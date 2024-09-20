@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	goerrors "errors"
 	operrors "github.com/openmfp/golang-commons/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -1020,7 +1021,7 @@ func TestLifecycle(t *testing.T) {
 			ctx = sentry.ContextWithSentryTags(ctx, map[string]string{})
 
 			// Act
-			result, err := lm.handleOperatorError(ctx, operrors.NewOperatorError(fmt.Errorf(errorMessage), true, true), "handle op error")
+			result, err := lm.handleOperatorError(ctx, operrors.NewOperatorError(goerrors.New(errorMessage), true, true), "handle op error")
 
 			// Assert
 			assert.Error(t, err)
@@ -1040,7 +1041,7 @@ func TestLifecycle(t *testing.T) {
 			lm, log := createLifecycleManager([]Subroutine{}, fakeClient)
 
 			// Act
-			result, err := lm.handleOperatorError(ctx, operrors.NewOperatorError(fmt.Errorf(errorMessage), false, false), "handle op error")
+			result, err := lm.handleOperatorError(ctx, operrors.NewOperatorError(goerrors.New(errorMessage), false, false), "handle op error")
 
 			// Assert
 			assert.Nil(t, err)
@@ -1072,6 +1073,7 @@ func TestLifecycle(t *testing.T) {
 			assert.NoError(t, err)
 
 			err = fakeClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, testApiObject)
+			assert.NoError(t, err)
 			assert.Equal(t, "valueFromContext", testApiObject.Status.Some)
 		})
 
@@ -1083,7 +1085,7 @@ func TestLifecycle(t *testing.T) {
 
 			lm, _ := createLifecycleManager([]Subroutine{contextValueSubroutine{}}, fakeClient)
 			lm = lm.WithPrepareContextFunc(func(ctx context.Context, instance RuntimeObject) (context.Context, operrors.OperatorError) {
-				return nil, operrors.NewOperatorError(fmt.Errorf(errorMessage), true, false)
+				return nil, operrors.NewOperatorError(goerrors.New(errorMessage), true, false)
 			})
 			tr := &testReconciler{lifecycleManager: lm}
 			result, err := tr.Reconcile(ctx, controllerruntime.Request{NamespacedName: types.NamespacedName{Name: name, Namespace: namespace}})
