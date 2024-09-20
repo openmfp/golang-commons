@@ -173,3 +173,27 @@ func (m *implementConditionsAndSpreadReconciles) GetNextReconcileTime() metav1.T
 func (m *implementConditionsAndSpreadReconciles) SetNextReconcileTime(time metav1.Time) {
 	m.Status.NextReconcileTime = time
 }
+
+type contextValueSubroutine struct {
+}
+
+const contextValueKey = "contextValueKey"
+
+func (f contextValueSubroutine) Process(ctx context.Context, r RuntimeObject) (controllerruntime.Result, errors.OperatorError) {
+	if instance, ok := r.(*testSupport.TestApiObject); ok {
+		instance.Status.Some = ctx.Value(contextValueKey).(string)
+	}
+	return controllerruntime.Result{}, nil
+}
+
+func (f contextValueSubroutine) Finalize(_ context.Context, _ RuntimeObject) (controllerruntime.Result, errors.OperatorError) {
+	return controllerruntime.Result{}, nil
+}
+
+func (f contextValueSubroutine) Finalizers() []string {
+	return []string{}
+}
+
+func (c contextValueSubroutine) GetName() string {
+	return "contextValueSubroutine"
+}

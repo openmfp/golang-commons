@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	operrors "github.com/openmfp/golang-commons/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	v1 "k8s.io/api/core/v1"
@@ -31,6 +32,12 @@ func TestLifecycle(t *testing.T) {
 		NamespacedName: types.NamespacedName{
 			Namespace: namespace,
 			Name:      name,
+		},
+	}
+	testApiObject := &testSupport.TestApiObject{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
 		},
 	}
 	ctx := context.Background()
@@ -1000,6 +1007,92 @@ func TestLifecycle(t *testing.T) {
 
 		// Assert
 		assert.Error(t, err)
+	})
+
+	errorMessage := "oh nose"
+	t.Run("handleOperatorError", func(t *testing.T) {
+		t.Run("Should handle an operator error with retry and sentry", func(t *testing.T) {
+			// Arrange
+			instance := &implementConditions{}
+			fakeClient := testSupport.CreateFakeClient(t, instance)
+
+			lm, log := createLifecycleManager([]Subroutine{}, fakeClient)
+			ctx = sentry.ContextWithSentryTags(ctx, map[string]string{})
+
+			// Act
+			result, err := lm.handleOperatorError(ctx, operrors.NewOperatorError(fmt.Errorf(errorMessage), true, true), "handle op error")
+
+			// Assert
+			assert.Error(t, err)
+			assert.NotNil(t, result)
+			assert.Equal(t, errorMessage, err.Error())
+
+			errorMessages, err := log.GetErrorMessages()
+			assert.NoError(t, err)
+			assert.Equal(t, errorMessage, *errorMessages[0].Error)
+		})
+
+		t.Run("Should handle an operator error without retry", func(t *testing.T) {
+			// Arrange
+			instance := &implementConditions{}
+			fakeClient := testSupport.CreateFakeClient(t, instance)
+
+			lm, log := createLifecycleManager([]Subroutine{}, fakeClient)
+
+			// Act
+			result, err := lm.handleOperatorError(ctx, operrors.NewOperatorError(fmt.Errorf(errorMessage), false, false), "handle op error")
+
+			// Assert
+			assert.Nil(t, err)
+			assert.NotNil(t, result)
+
+			errorMessages, err := log.GetErrorMessages()
+			assert.NoError(t, err)
+			assert.Equal(t, errorMessage, *errorMessages[0].Error)
+		})
+	})
+
+	t.Run("Prepare Context", func(t *testing.T) {
+		t.Run("Sets a context that can be used in the subroutine", func(t *testing.T) {
+			// Arrange
+			ctx := context.Background()
+
+			fakeClient := testSupport.CreateFakeClient(t, testApiObject)
+
+			lm, _ := createLifecycleManager([]Subroutine{contextValueSubroutine{}}, fakeClient)
+			lm = lm.WithPrepareContextFunc(func(ctx context.Context, instance RuntimeObject) (context.Context, operrors.OperatorError) {
+				return context.WithValue(ctx, contextValueKey, "valueFromContext"), nil
+			})
+			tr := &testReconciler{lifecycleManager: lm}
+			result, err := tr.Reconcile(ctx, controllerruntime.Request{NamespacedName: types.NamespacedName{Name: name, Namespace: namespace}})
+
+			// Then
+			assert.NotNil(t, ctx)
+			assert.NotNil(t, result)
+			assert.NoError(t, err)
+
+			err = fakeClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, testApiObject)
+			assert.Equal(t, "valueFromContext", testApiObject.Status.Some)
+		})
+
+		t.Run("Handles the errors correctly", func(t *testing.T) {
+			// Arrange
+			ctx := context.Background()
+
+			fakeClient := testSupport.CreateFakeClient(t, testApiObject)
+
+			lm, _ := createLifecycleManager([]Subroutine{contextValueSubroutine{}}, fakeClient)
+			lm = lm.WithPrepareContextFunc(func(ctx context.Context, instance RuntimeObject) (context.Context, operrors.OperatorError) {
+				return nil, operrors.NewOperatorError(fmt.Errorf(errorMessage), true, false)
+			})
+			tr := &testReconciler{lifecycleManager: lm}
+			result, err := tr.Reconcile(ctx, controllerruntime.Request{NamespacedName: types.NamespacedName{Name: name, Namespace: namespace}})
+
+			// Then
+			assert.NotNil(t, ctx)
+			assert.NotNil(t, result)
+			assert.Error(t, err)
+		})
 	})
 }
 

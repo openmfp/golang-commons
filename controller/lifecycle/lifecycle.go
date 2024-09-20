@@ -27,13 +27,14 @@ import (
 )
 
 type LifecycleManager struct {
-	log              *logger.Logger
-	client           client.Client
-	subroutines      []Subroutine
-	operatorName     string
-	controllerName   string
-	spreadReconciles bool
-	manageConditions bool
+	log                *logger.Logger
+	client             client.Client
+	subroutines        []Subroutine
+	operatorName       string
+	controllerName     string
+	spreadReconciles   bool
+	manageConditions   bool
+	prepareContextFunc func(ctx context.Context, instance RuntimeObject) (context.Context, errors.OperatorError)
 }
 
 type RuntimeObject interface {
@@ -109,6 +110,14 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 
 	if l.manageConditions {
 		setInstanceConditionUnknownIfNotSet(&conditions)
+	}
+
+	if l.prepareContextFunc != nil {
+		localCtx, oErr := l.prepareContextFunc(ctx, instance)
+		if oErr != nil {
+			return l.handleOperatorError(ctx, oErr, "failed to prepare context")
+		}
+		ctx = localCtx
 	}
 
 	// In case of deletion execute the finalize subroutines in the reverse order as subroutine processing
@@ -260,6 +269,19 @@ func updateStatus(ctx context.Context, cl client.Client, original runtime.Object
 	return nil
 }
 
+func (l *LifecycleManager) handleOperatorError(ctx context.Context, operatorError errors.OperatorError, msg string) (ctrl.Result, error) {
+	l.log.Error().Bool("retry", operatorError.Retry()).Bool("sentry", operatorError.Sentry()).Err(operatorError.Err()).Msg(msg)
+	if operatorError.Sentry() {
+		sentry.CaptureError(operatorError.Err(), sentry.GetSentryTagsFromContext(ctx))
+	}
+
+	if operatorError.Retry() {
+		return ctrl.Result{}, operatorError.Err()
+	}
+
+	return ctrl.Result{}, nil
+}
+
 func (l *LifecycleManager) handleClientError(msg string, log *logger.Logger, err error, sentryTags sentry.Tags) (ctrl.Result, error) {
 	log.Error().Err(err).Msg(msg)
 	sentry.CaptureError(err, sentryTags)
@@ -370,4 +392,12 @@ func (l *LifecycleManager) SetupWithManager(mgr ctrl.Manager, maxReconciles int,
 		WithOptions(controller.Options{MaxConcurrentReconciles: maxReconciles}).
 		WithEventFilter(predicate.And(eventPredicates...)).
 		Complete(r)
+}
+
+// WithPrepareContextFunc allows to set a function that prepares the context before each reconciliation
+// This can be used to add additional information to the context that is needed by the subroutines
+// You need to return a new context and an OperatorError in case of an error
+func (l *LifecycleManager) WithPrepareContextFunc(prepareFunction func(ctx context.Context, instance RuntimeObject) (context.Context, errors.OperatorError)) *LifecycleManager {
+	l.prepareContextFunc = prepareFunction
+	return l
 }
