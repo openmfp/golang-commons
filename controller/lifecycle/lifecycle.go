@@ -34,7 +34,7 @@ type LifecycleManager struct {
 	controllerName     string
 	spreadReconciles   bool
 	manageConditions   bool
-	prepareContextFunc func(ctx context.Context, instance RuntimeObject) (context.Context, errors.OperatorError)
+	prepareContextFunc PrepareContextFunc
 }
 
 type RuntimeObject interface {
@@ -394,10 +394,12 @@ func (l *LifecycleManager) SetupWithManager(mgr ctrl.Manager, maxReconciles int,
 		Complete(r)
 }
 
+type PrepareContextFunc func(ctx context.Context, instance RuntimeObject) (context.Context, errors.OperatorError)
+
 // WithPrepareContextFunc allows to set a function that prepares the context before each reconciliation
 // This can be used to add additional information to the context that is needed by the subroutines
 // You need to return a new context and an OperatorError in case of an error
-func (l *LifecycleManager) WithPrepareContextFunc(prepareFunction func(ctx context.Context, instance RuntimeObject) (context.Context, errors.OperatorError)) *LifecycleManager {
+func (l *LifecycleManager) WithPrepareContextFunc(prepareFunction PrepareContextFunc) *LifecycleManager {
 	l.prepareContextFunc = prepareFunction
 	return l
 }
