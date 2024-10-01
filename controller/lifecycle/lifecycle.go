@@ -18,7 +18,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -372,40 +371,36 @@ func (l *LifecycleManager) addFinalizerIfNeeded(ctx context.Context, instance Ru
 	return nil
 }
 
-type ControllerWatch struct {
-	Object       client.Object
-	EventHandler handler.EventHandler
-	Opts         []builder.WatchesOption
-}
-
-func (l *LifecycleManager) SetupWithManager(mgr ctrl.Manager, maxReconciles int, reconcilerName string,
-	instance RuntimeObject, debugLabelValue string, r reconcile.Reconciler,
-	log *logger.Logger, controllerWatch *ControllerWatch, eventPredicates ...predicate.Predicate,
-) error {
+func (l *LifecycleManager) SetupWithManagerBuilder(mgr ctrl.Manager, maxReconciles int, reconcilerName string, instance RuntimeObject, debugLabelValue string, r reconcile.Reconciler, log *logger.Logger, eventPredicates ...predicate.Predicate) (*builder.Builder, error) {
 	if l.manageConditions {
 		_, err := toRuntimeObjectConditionsInterface(instance, log)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	if l.spreadReconciles {
 		_, err := toRuntimeObjectSpreadReconcileStatusInterface(instance, log)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	eventPredicates = append([]predicate.Predicate{filter.DebugResourcesBehaviourPredicate(debugLabelValue)}, eventPredicates...)
-	controllerBuilder := ctrl.NewControllerManagedBy(mgr).
+	return ctrl.NewControllerManagedBy(mgr).
 		Named(reconcilerName).
 		For(instance).
 		WithOptions(controller.Options{MaxConcurrentReconciles: maxReconciles}).
-		WithEventFilter(predicate.And(eventPredicates...))
-	if controllerWatch != nil {
-		controllerBuilder.Watches(controllerWatch.Object, controllerWatch.EventHandler, controllerWatch.Opts...)
+		WithEventFilter(predicate.And(eventPredicates...)), nil
+}
+
+func (l *LifecycleManager) SetupWithManager(mgr ctrl.Manager, maxReconciles int, reconcilerName string, instance RuntimeObject, debugLabelValue string, r reconcile.Reconciler, log *logger.Logger, eventPredicates ...predicate.Predicate) error {
+	bldr, err := l.SetupWithManagerBuilder(mgr, maxReconciles, reconcilerName, instance, debugLabelValue, r, log, eventPredicates...)
+	if err != nil {
+		return err
 	}
-	return controllerBuilder.Complete(r)
+
+	return bldr.Complete(r)
 }
 
 type PrepareContextFunc func(ctx context.Context, instance RuntimeObject) (context.Context, errors.OperatorError)

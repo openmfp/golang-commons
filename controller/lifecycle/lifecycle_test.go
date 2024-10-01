@@ -492,7 +492,7 @@ func TestLifecycle(t *testing.T) {
 		}
 
 		// Act
-		err = lm.SetupWithManager(m, 0, "testReconciler", instance, "test", tr, log, nil)
+		err = lm.SetupWithManager(m, 0, "testReconciler", instance, "test", tr, log)
 
 		// Assert
 		assert.NoError(t, err)
@@ -516,7 +516,7 @@ func TestLifecycle(t *testing.T) {
 		}
 
 		// Act
-		err = lm.SetupWithManager(m, 0, "testReconciler", instance, "test", tr, log, nil)
+		err = lm.SetupWithManager(m, 0, "testReconciler", instance, "test", tr, log)
 
 		// Assert
 		assert.Error(t, err)
@@ -948,7 +948,7 @@ func TestLifecycle(t *testing.T) {
 		tr := &testReconciler{lifecycleManager: lm}
 
 		// Act
-		err = lm.SetupWithManager(m, 0, "testReconciler", instance, "test", tr, log.Logger, nil)
+		err = lm.SetupWithManager(m, 0, "testReconciler", instance, "test", tr, log.Logger)
 
 		// Assert
 		assert.NoError(t, err)
@@ -967,7 +967,7 @@ func TestLifecycle(t *testing.T) {
 		tr := &testReconciler{lifecycleManager: lm}
 
 		// Act
-		err = lm.SetupWithManager(m, 0, "testReconciler", instance, "test", tr, log.Logger, nil)
+		err = lm.SetupWithManager(m, 0, "testReconciler", instance, "test", tr, log.Logger)
 
 		// Assert
 		assert.Error(t, err)
@@ -986,7 +986,7 @@ func TestLifecycle(t *testing.T) {
 		tr := &testReconciler{lifecycleManager: lm}
 
 		// Act
-		err = lm.SetupWithManager(m, 0, "testReconciler", instance, "test", tr, log.Logger, nil)
+		err = lm.SetupWithManager(m, 0, "testReconciler", instance, "test", tr, log.Logger)
 
 		// Assert
 		assert.NoError(t, err)
@@ -1005,7 +1005,7 @@ func TestLifecycle(t *testing.T) {
 		tr := &testReconciler{lifecycleManager: lm}
 
 		// Act
-		err = lm.SetupWithManager(m, 0, "testReconciler", instance, "test", tr, log.Logger, nil)
+		err = lm.SetupWithManager(m, 0, "testReconciler", instance, "test", tr, log.Logger)
 
 		// Assert
 		assert.Error(t, err)
