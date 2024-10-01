@@ -7,6 +7,7 @@ import (
 	"time"
 
 	goerrors "errors"
+
 	operrors "github.com/openmfp/golang-commons/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -491,7 +492,7 @@ func TestLifecycle(t *testing.T) {
 		}
 
 		// Act
-		err = lm.SetupWithManager(m, 0, "testReconciler", instance, "test", tr, log)
+		err = lm.SetupWithManager(m, 0, "testReconciler", instance, "test", tr, log, nil)
 
 		// Assert
 		assert.NoError(t, err)
@@ -515,7 +516,7 @@ func TestLifecycle(t *testing.T) {
 		}
 
 		// Act
-		err = lm.SetupWithManager(m, 0, "testReconciler", instance, "test", tr, log)
+		err = lm.SetupWithManager(m, 0, "testReconciler", instance, "test", tr, log, nil)
 
 		// Assert
 		assert.Error(t, err)
@@ -947,7 +948,7 @@ func TestLifecycle(t *testing.T) {
 		tr := &testReconciler{lifecycleManager: lm}
 
 		// Act
-		err = lm.SetupWithManager(m, 0, "testReconciler", instance, "test", tr, log.Logger)
+		err = lm.SetupWithManager(m, 0, "testReconciler", instance, "test", tr, log.Logger, nil)
 
 		// Assert
 		assert.NoError(t, err)
@@ -966,7 +967,7 @@ func TestLifecycle(t *testing.T) {
 		tr := &testReconciler{lifecycleManager: lm}
 
 		// Act
-		err = lm.SetupWithManager(m, 0, "testReconciler", instance, "test", tr, log.Logger)
+		err = lm.SetupWithManager(m, 0, "testReconciler", instance, "test", tr, log.Logger, nil)
 
 		// Assert
 		assert.Error(t, err)
@@ -985,7 +986,7 @@ func TestLifecycle(t *testing.T) {
 		tr := &testReconciler{lifecycleManager: lm}
 
 		// Act
-		err = lm.SetupWithManager(m, 0, "testReconciler", instance, "test", tr, log.Logger)
+		err = lm.SetupWithManager(m, 0, "testReconciler", instance, "test", tr, log.Logger, nil)
 
 		// Assert
 		assert.NoError(t, err)
@@ -1004,7 +1005,7 @@ func TestLifecycle(t *testing.T) {
 		tr := &testReconciler{lifecycleManager: lm}
 
 		// Act
-		err = lm.SetupWithManager(m, 0, "testReconciler", instance, "test", tr, log.Logger)
+		err = lm.SetupWithManager(m, 0, "testReconciler", instance, "test", tr, log.Logger, nil)
 
 		// Assert
 		assert.Error(t, err)
