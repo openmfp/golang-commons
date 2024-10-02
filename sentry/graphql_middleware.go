@@ -22,7 +22,20 @@ func GraphQLErrorPresenter(skipTenants ...string) graphql.ErrorPresenterFunc {
 
 		if !IsSentryError(e) {
 			l := logger.LoadLoggerFromContext(ctx)
-			l.Debug().Err(err).Msg("Error not sent to Sentry")
+
+			spiffe, err2 := openmfpcontext.GetSpiffeFromContext(ctx)
+			isTechnicalIssuer := openmfpcontext.GetIsTechnicalIssuerFromContext(ctx)
+			webToken, err3 := openmfpcontext.GetWebTokenFromContext(ctx)
+
+			event := l.Debug().Err(err)
+			if err2 == nil {
+				event = event.Str("spiffe", spiffe)
+			}
+			if err3 == nil {
+				event = event.Interface("webToken.Subject", webToken.Subject)
+			}
+			event = event.Bool("isTechnicalIssuer", isTechnicalIssuer)
+			event.Msg("Error not sent to Sentry")
 			return err
 		}
 
