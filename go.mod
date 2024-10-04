@@ -14,9 +14,9 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/jellydator/ttlcache/v3 v3.2.0
 	github.com/machinebox/graphql v0.2.2
-	github.com/openfga/api/proto v0.0.0-20240723155248-7e5be7b65c27
+	github.com/openfga/api/proto v0.0.0-20240807201305-c96ec773cae9
 	github.com/openfga/language/pkg/go v0.0.0-20240409225820-a53ea2892d6d
-	github.com/openfga/openfga v1.5.7
+	github.com/openfga/openfga v1.5.9
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.33.0
 	github.com/stretchr/testify v1.9.0
@@ -92,7 +92,6 @@ require (
 	github.com/stoewer/go-strcase v1.3.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
-	github.com/vrischmann/envconfig v1.3.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.25.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.25.0 // indirect
 	go.opentelemetry.io/otel/metric v1.28.0 // indirect
