@@ -735,7 +735,6 @@ func TestLifecycle(t *testing.T) {
 		assert.Equal(t, "changeStatus_Ready", instance.Status.Conditions[1].Type)
 		assert.Equal(t, metav1.ConditionTrue, instance.Status.Conditions[1].Status)
 		assert.Equal(t, "The subroutine is complete", instance.Status.Conditions[1].Message)
-
 	})
 
 	t.Run("Lifecycle with manage conditions finalizes with multiple subroutines partially succeeding", func(t *testing.T) {
@@ -774,7 +773,6 @@ func TestLifecycle(t *testing.T) {
 		assert.Equal(t, "failureScenarioSubroutine_Finalize", instance.Status.Conditions[2].Type)
 		assert.Equal(t, metav1.ConditionFalse, instance.Status.Conditions[2].Status)
 		assert.Equal(t, "The subroutine finalization has an error: failureScenarioSubroutine", instance.Status.Conditions[2].Message)
-
 	})
 
 	t.Run("Lifecycle with manage conditions reconciles with RequeAfter subroutine", func(t *testing.T) {
