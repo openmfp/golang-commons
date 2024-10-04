@@ -3,8 +3,11 @@ package lifecycle
 import (
 	"context"
 	"fmt"
-	"github.com/openmfp/golang-commons/context/keys"
 	"time"
+
+	"k8s.io/apimachinery/pkg/api/meta"
+
+	"github.com/openmfp/golang-commons/context/keys"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -111,6 +114,34 @@ func (c changeStatusSubroutine) GetName() string {
 
 func (c changeStatusSubroutine) Finalizers() []string {
 	return []string{"changestatus"}
+}
+
+type addConditionSubroutine struct{}
+
+func (c addConditionSubroutine) Process(_ context.Context, runtimeObj RuntimeObject) (controllerruntime.Result, errors.OperatorError) {
+	if instance, ok := runtimeObj.(*implementConditions); ok {
+		instance.Status.Some = "other string"
+		meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
+			Type:    "test",
+			Status:  metav1.ConditionTrue,
+			Reason:  "test",
+			Message: "test",
+		})
+	}
+
+	return controllerruntime.Result{}, nil
+}
+
+func (c addConditionSubroutine) Finalize(_ context.Context, _ RuntimeObject) (controllerruntime.Result, errors.OperatorError) {
+	return controllerruntime.Result{}, nil
+}
+
+func (c addConditionSubroutine) GetName() string {
+	return "addCondition"
+}
+
+func (c addConditionSubroutine) Finalizers() []string {
+	return []string{}
 }
 
 type failureScenarioSubroutine struct {

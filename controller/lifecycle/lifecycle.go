@@ -132,8 +132,20 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 	for _, subroutine := range subroutines {
 		if l.manageConditions {
 			setSubroutineConditionToUnknownIfNotSet(&conditions, subroutine, inDeletion, log)
+			instanceConditionsObj, err := toRuntimeObjectConditionsInterface(instance, log)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			instanceConditionsObj.SetConditions(conditions)
 		}
 		subResult, retry, err := l.reconcileSubroutine(ctx, instance, subroutine, log, sentryTags)
+		if l.manageConditions {
+			instanceConditionsObj, err := toRuntimeObjectConditionsInterface(instance, log)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			conditions = instanceConditionsObj.GetConditions()
+		}
 		if err != nil {
 			if l.manageConditions {
 				setSubroutineCondition(&conditions, subroutine, result, err, inDeletion, log)
@@ -145,7 +157,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 				instanceConditionsObj.SetConditions(conditions)
 			}
 			if !retry {
-				err := l.markResourceAsFinal(instance, log, conditions, v1.ConditionFalse)
+				err := l.markResourceAsFinal(instance, log, &conditions, v1.ConditionFalse)
 				if err != nil {
 					return ctrl.Result{}, err
 				}
@@ -173,7 +185,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 
 	if !result.Requeue && result.RequeueAfter == 0 {
 		// Reconciliation was successful
-		err := l.markResourceAsFinal(instance, log, conditions, v1.ConditionTrue)
+		err := l.markResourceAsFinal(instance, log, &conditions, v1.ConditionTrue)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -210,7 +222,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 	return result, nil
 }
 
-func (l *LifecycleManager) markResourceAsFinal(instance RuntimeObject, log *logger.Logger, conditions []v1.Condition, status v1.ConditionStatus) error {
+func (l *LifecycleManager) markResourceAsFinal(instance RuntimeObject, log *logger.Logger, conditions *[]v1.Condition, status v1.ConditionStatus) error {
 	if l.spreadReconciles && instance.GetDeletionTimestamp().IsZero() {
 		instanceStatusObj := MustToRuntimeObjectSpreadReconcileStatusInterface(instance, log)
 		setNextReconcileTime(instanceStatusObj, log)
@@ -218,7 +230,7 @@ func (l *LifecycleManager) markResourceAsFinal(instance RuntimeObject, log *logg
 	}
 
 	if l.manageConditions {
-		setInstanceConditionReady(&conditions, status)
+		setInstanceConditionReady(conditions, status)
 	}
 	return nil
 }
@@ -371,7 +383,7 @@ func (l *LifecycleManager) addFinalizerIfNeeded(ctx context.Context, instance Ru
 	return nil
 }
 
-func (l *LifecycleManager) SetupWithManagerBuilder(mgr ctrl.Manager, maxReconciles int, reconcilerName string, instance RuntimeObject, debugLabelValue string, r reconcile.Reconciler, log *logger.Logger, eventPredicates ...predicate.Predicate) (*builder.Builder, error) {
+func (l *LifecycleManager) SetupWithManagerBuilder(mgr ctrl.Manager, maxReconciles int, reconcilerName string, instance RuntimeObject, debugLabelValue string, log *logger.Logger, eventPredicates ...predicate.Predicate) (*builder.Builder, error) {
 	if l.manageConditions {
 		_, err := toRuntimeObjectConditionsInterface(instance, log)
 		if err != nil {
@@ -395,7 +407,7 @@ func (l *LifecycleManager) SetupWithManagerBuilder(mgr ctrl.Manager, maxReconcil
 }
 
 func (l *LifecycleManager) SetupWithManager(mgr ctrl.Manager, maxReconciles int, reconcilerName string, instance RuntimeObject, debugLabelValue string, r reconcile.Reconciler, log *logger.Logger, eventPredicates ...predicate.Predicate) error {
-	bldr, err := l.SetupWithManagerBuilder(mgr, maxReconciles, reconcilerName, instance, debugLabelValue, r, log, eventPredicates...)
+	bldr, err := l.SetupWithManagerBuilder(mgr, maxReconciles, reconcilerName, instance, debugLabelValue, log, eventPredicates...)
 	if err != nil {
 		return err
 	}

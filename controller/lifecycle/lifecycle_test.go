@@ -2,15 +2,14 @@ package lifecycle
 
 import (
 	"context"
+	goerrors "errors"
 	"fmt"
 	"testing"
 	"time"
 
-	goerrors "errors"
-
-	operrors "github.com/openmfp/golang-commons/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,6 +18,8 @@ import (
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	operrors "github.com/openmfp/golang-commons/errors"
 
 	"github.com/openmfp/golang-commons/controller/lifecycle/mocks"
 	"github.com/openmfp/golang-commons/controller/testSupport"
@@ -630,13 +631,49 @@ func TestLifecycle(t *testing.T) {
 		_, err := mgr.Reconcile(ctx, request, instance)
 
 		assert.NoError(t, err)
-		assert.Len(t, instance.Status.Conditions, 2)
+		require.Len(t, instance.Status.Conditions, 2)
+		assert.Equal(t, "changeStatus_Ready", instance.Status.Conditions[0].Type)
+		assert.Equal(t, metav1.ConditionTrue, instance.Status.Conditions[0].Status)
+		assert.Equal(t, "The subroutine is complete", instance.Status.Conditions[0].Message)
+		assert.Equal(t, ConditionReady, instance.Status.Conditions[1].Type)
+		assert.Equal(t, metav1.ConditionTrue, instance.Status.Conditions[1].Status)
+		assert.Equal(t, "The resource is ready", instance.Status.Conditions[1].Message)
+
+	})
+
+	t.Run("Lifecycle with manage conditions reconciles with subroutine that adds a condition", func(t *testing.T) {
+		// Arrange
+		instance := &implementConditions{
+			testSupport.TestApiObject{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       name,
+					Namespace:  namespace,
+					Generation: 1,
+				},
+				Status: testSupport.TestStatus{},
+			},
+		}
+
+		fakeClient := testSupport.CreateFakeClient(t, instance)
+
+		mgr, _ := createLifecycleManager([]Subroutine{addConditionSubroutine{}}, fakeClient)
+		mgr.WithConditionManagement()
+
+		// Act
+		_, err := mgr.Reconcile(ctx, request, instance)
+
+		assert.NoError(t, err)
+		require.Len(t, instance.Status.Conditions, 3)
 		assert.Equal(t, ConditionReady, instance.Status.Conditions[0].Type)
 		assert.Equal(t, metav1.ConditionTrue, instance.Status.Conditions[0].Status)
 		assert.Equal(t, "The resource is ready", instance.Status.Conditions[0].Message)
-		assert.Equal(t, "changeStatus_Ready", instance.Status.Conditions[1].Type)
+		assert.Equal(t, "addCondition_Ready", instance.Status.Conditions[1].Type)
 		assert.Equal(t, metav1.ConditionTrue, instance.Status.Conditions[1].Status)
 		assert.Equal(t, "The subroutine is complete", instance.Status.Conditions[1].Message)
+		assert.Equal(t, "test", instance.Status.Conditions[2].Type)
+		assert.Equal(t, metav1.ConditionTrue, instance.Status.Conditions[2].Status)
+		assert.Equal(t, "test", instance.Status.Conditions[2].Message)
+
 	})
 
 	t.Run("Lifecycle with manage conditions reconciles with subroutine failing Status update", func(t *testing.T) {
@@ -665,12 +702,13 @@ func TestLifecycle(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Len(t, instance.Status.Conditions, 2)
-		assert.Equal(t, ConditionReady, instance.Status.Conditions[0].Type)
+		assert.Equal(t, "changeStatus_Ready", instance.Status.Conditions[0].Type)
 		assert.Equal(t, metav1.ConditionTrue, instance.Status.Conditions[0].Status)
-		assert.Equal(t, "The resource is ready", instance.Status.Conditions[0].Message)
-		assert.Equal(t, "changeStatus_Ready", instance.Status.Conditions[1].Type)
+		assert.Equal(t, "The subroutine is complete", instance.Status.Conditions[0].Message)
+		assert.Equal(t, ConditionReady, instance.Status.Conditions[1].Type)
 		assert.Equal(t, metav1.ConditionTrue, instance.Status.Conditions[1].Status)
-		assert.Equal(t, "The subroutine is complete", instance.Status.Conditions[1].Message)
+		assert.Equal(t, "The resource is ready", instance.Status.Conditions[1].Message)
+
 	})
 
 	t.Run("Lifecycle with manage conditions finalizes with multiple subroutines partially succeeding", func(t *testing.T) {
@@ -699,7 +737,7 @@ func TestLifecycle(t *testing.T) {
 		_, err := mgr.Reconcile(ctx, request, instance)
 
 		assert.Error(t, err)
-		assert.Len(t, instance.Status.Conditions, 3)
+		require.Len(t, instance.Status.Conditions, 3)
 		assert.Equal(t, ConditionReady, instance.Status.Conditions[0].Type)
 		assert.Equal(t, metav1.ConditionFalse, instance.Status.Conditions[0].Status)
 		assert.Equal(t, "The resource is not ready", instance.Status.Conditions[0].Message)
