@@ -139,8 +139,8 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 			if err != nil {
 				return ctrl.Result{}, err
 			}
-			instConditions := instanceConditionsObj.GetConditions()
-			conditions = append(conditions, instConditions...)
+			// Add conditions that the subroutine may have added to the list of conditions
+			conditions = append(conditions, instanceConditionsObj.GetConditions()...)
 		}
 		if err != nil {
 			if l.manageConditions {
