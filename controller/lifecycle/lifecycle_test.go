@@ -676,6 +676,34 @@ func TestLifecycle(t *testing.T) {
 
 	})
 
+	t.Run("Lifecycle w/o manage conditions reconciles with subroutine that adds a condition", func(t *testing.T) {
+		// Arrange
+		instance := &implementConditions{
+			testSupport.TestApiObject{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       name,
+					Namespace:  namespace,
+					Generation: 1,
+				},
+				Status: testSupport.TestStatus{},
+			},
+		}
+
+		fakeClient := testSupport.CreateFakeClient(t, instance)
+
+		mgr, _ := createLifecycleManager([]Subroutine{addConditionSubroutine{}}, fakeClient)
+
+		// Act
+		_, err := mgr.Reconcile(ctx, request, instance)
+
+		assert.NoError(t, err)
+		require.Len(t, instance.Status.Conditions, 1)
+		assert.Equal(t, "test", instance.Status.Conditions[0].Type)
+		assert.Equal(t, metav1.ConditionTrue, instance.Status.Conditions[0].Status)
+		assert.Equal(t, "test", instance.Status.Conditions[0].Message)
+
+	})
+
 	t.Run("Lifecycle with manage conditions reconciles with subroutine failing Status update", func(t *testing.T) {
 		// Arrange
 		instance := &implementConditions{
