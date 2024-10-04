@@ -132,11 +132,6 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 	for _, subroutine := range subroutines {
 		if l.manageConditions {
 			setSubroutineConditionToUnknownIfNotSet(&conditions, subroutine, inDeletion, log)
-			instanceConditionsObj, err := toRuntimeObjectConditionsInterface(instance, log)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-			instanceConditionsObj.SetConditions(conditions)
 		}
 		subResult, retry, err := l.reconcileSubroutine(ctx, instance, subroutine, log, sentryTags)
 		if l.manageConditions {
@@ -144,7 +139,8 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 			if err != nil {
 				return ctrl.Result{}, err
 			}
-			conditions = instanceConditionsObj.GetConditions()
+			instConditions := instanceConditionsObj.GetConditions()
+			conditions = append(conditions, instConditions...)
 		}
 		if err != nil {
 			if l.manageConditions {
