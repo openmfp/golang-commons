@@ -153,7 +153,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 				instanceConditionsObj.SetConditions(conditions)
 			}
 			if !retry {
-				err := l.markResourceAsFinal(instance, log, &conditions, v1.ConditionFalse)
+				err := l.markResourceAsFinal(instance, log, conditions, v1.ConditionFalse)
 				if err != nil {
 					return ctrl.Result{}, err
 				}
@@ -181,7 +181,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 
 	if !result.Requeue && result.RequeueAfter == 0 {
 		// Reconciliation was successful
-		err := l.markResourceAsFinal(instance, log, &conditions, v1.ConditionTrue)
+		err := l.markResourceAsFinal(instance, log, conditions, v1.ConditionTrue)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -218,7 +218,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 	return result, nil
 }
 
-func (l *LifecycleManager) markResourceAsFinal(instance RuntimeObject, log *logger.Logger, conditions *[]v1.Condition, status v1.ConditionStatus) error {
+func (l *LifecycleManager) markResourceAsFinal(instance RuntimeObject, log *logger.Logger, conditions []v1.Condition, status v1.ConditionStatus) error {
 	if l.spreadReconciles && instance.GetDeletionTimestamp().IsZero() {
 		instanceStatusObj := MustToRuntimeObjectSpreadReconcileStatusInterface(instance, log)
 		setNextReconcileTime(instanceStatusObj, log)
@@ -226,7 +226,7 @@ func (l *LifecycleManager) markResourceAsFinal(instance RuntimeObject, log *logg
 	}
 
 	if l.manageConditions {
-		setInstanceConditionReady(conditions, status)
+		setInstanceConditionReady(&conditions, status)
 	}
 	return nil
 }
