@@ -10,6 +10,7 @@ import (
 	"golang.org/x/exp/maps"
 	"k8s.io/apimachinery/pkg/api/equality"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -135,12 +136,10 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 		}
 		subResult, retry, err := l.reconcileSubroutine(ctx, instance, subroutine, log, sentryTags)
 		if l.manageConditions {
-			instanceConditionsObj, err := toRuntimeObjectConditionsInterface(instance, log)
-			if err != nil {
-				return ctrl.Result{}, err
+			merr := mergeConditions(instance, &conditions, log)
+			if merr != nil {
+				return ctrl.Result{}, merr
 			}
-			// Add conditions that the subroutine may have added to the list of conditions
-			conditions = append(conditions, instanceConditionsObj.GetConditions()...)
 		}
 		if err != nil {
 			if l.manageConditions {
@@ -216,6 +215,18 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 
 	log.Info().Msg("end reconcile")
 	return result, nil
+}
+
+func mergeConditions(instance RuntimeObject, conditions *[]v1.Condition, log *logger.Logger) error {
+	instanceConditionsObj, err := toRuntimeObjectConditionsInterface(instance, log)
+	if err != nil {
+		return err
+	}
+
+	for _, cond := range instanceConditionsObj.GetConditions() {
+		meta.SetStatusCondition(conditions, cond)
+	}
+	return nil
 }
 
 func (l *LifecycleManager) markResourceAsFinal(instance RuntimeObject, log *logger.Logger, conditions []v1.Condition, status v1.ConditionStatus) error {
