@@ -136,30 +136,18 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 
 		// Set current conditions before reconciling the subroutine
 		if l.manageConditions {
-			instanceConditionsObj, err := toRuntimeObjectConditionsInterface(instance, log)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-			instanceConditionsObj.SetConditions(conditions)
+			MustToRuntimeObjectConditionsInterface(instance, log).SetConditions(conditions)
 		}
 		subResult, retry, err := l.reconcileSubroutine(ctx, instance, subroutine, log, sentryTags)
 		// Update conditions with any changes the subroutine did
 		if l.manageConditions {
-			instanceConditionsObj, err := toRuntimeObjectConditionsInterface(instance, log)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-			conditions = instanceConditionsObj.GetConditions()
+			conditions = MustToRuntimeObjectConditionsInterface(instance, log).GetConditions()
 		}
 		if err != nil {
 			if l.manageConditions {
 				setSubroutineCondition(&conditions, subroutine, result, err, inDeletion, log)
 				setInstanceConditionReady(&conditions, v1.ConditionFalse)
-				instanceConditionsObj, err := toRuntimeObjectConditionsInterface(instance, log)
-				if err != nil {
-					return ctrl.Result{}, err
-				}
-				instanceConditionsObj.SetConditions(conditions)
+				MustToRuntimeObjectConditionsInterface(instance, log).SetConditions(conditions)
 			}
 			if !retry {
 				err := l.markResourceAsFinal(instance, log, conditions, v1.ConditionFalse)

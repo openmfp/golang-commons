@@ -69,11 +69,10 @@ func toRuntimeObjectSpreadReconcileStatusInterface(instance RuntimeObject, log *
 }
 
 func MustToRuntimeObjectSpreadReconcileStatusInterface(instance RuntimeObject, log *logger.Logger) RuntimeObjectSpreadReconcileStatus {
-	if obj, ok := instance.(RuntimeObjectSpreadReconcileStatus); ok {
+	obj, err := toRuntimeObjectSpreadReconcileStatusInterface(instance, log)
+	if err == nil {
 		return obj
 	}
-	err := fmt.Errorf("spreadReconciles is enabled, but instance does not implement RuntimeObjectSpreadReconcileStatus interface. This is a programming error")
-	sentry.CaptureError(err, nil)
-	log.Panic().Msg("Failed to cast instance to RuntimeObjectSpreadReconcileStatus")
+	log.Panic().Err(err).Msg("Failed to cast instance to RuntimeObjectSpreadReconcileStatus")
 	return nil
 }

@@ -125,3 +125,12 @@ func toRuntimeObjectConditionsInterface(instance RuntimeObject, log *logger.Logg
 	sentry.CaptureError(err, nil)
 	return nil, err
 }
+
+func MustToRuntimeObjectConditionsInterface(instance RuntimeObject, log *logger.Logger) RuntimeObjectConditions {
+	obj, err := toRuntimeObjectConditionsInterface(instance, log)
+	if err == nil {
+		return obj
+	}
+	log.Panic().Err(err).Msg("instance does not implement RuntimeObjectConditions interface")
+	return nil
+}
