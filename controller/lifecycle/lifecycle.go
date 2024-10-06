@@ -224,7 +224,11 @@ func mergeConditions(instance RuntimeObject, conditions *[]v1.Condition, log *lo
 	}
 
 	for _, cond := range instanceConditionsObj.GetConditions() {
-		meta.SetStatusCondition(conditions, cond)
+		// only set conditions that are not already managed by the lifecycle or previous subroutines
+		// This means to prevent overwriting of conditions that are set by the subroutines
+		if meta.FindStatusCondition(*conditions, cond.Type) == nil {
+			meta.SetStatusCondition(conditions, cond)
+		}
 	}
 	return nil
 }

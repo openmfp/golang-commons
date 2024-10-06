@@ -144,6 +144,34 @@ func (c addConditionSubroutine) Finalizers() []string {
 	return []string{}
 }
 
+type tryToOverwriteSubroutineCondition struct{}
+
+func (c tryToOverwriteSubroutineCondition) Process(_ context.Context, runtimeObj RuntimeObject) (controllerruntime.Result, errors.OperatorError) {
+	if instance, ok := runtimeObj.(*implementConditions); ok {
+		instance.Status.Some = "other string"
+		meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
+			Type:    "addCondition_Ready",
+			Status:  metav1.ConditionTrue,
+			Reason:  "This should never be persisted",
+			Message: "really this should not be possible",
+		})
+	}
+
+	return controllerruntime.Result{}, nil
+}
+
+func (c tryToOverwriteSubroutineCondition) Finalize(_ context.Context, _ RuntimeObject) (controllerruntime.Result, errors.OperatorError) {
+	return controllerruntime.Result{}, nil
+}
+
+func (c tryToOverwriteSubroutineCondition) GetName() string {
+	return "tryToOverwriteSubroutineCondition"
+}
+
+func (c tryToOverwriteSubroutineCondition) Finalizers() []string {
+	return []string{}
+}
+
 type failureScenarioSubroutine struct {
 	Retry              bool
 	RequeAfter         bool
