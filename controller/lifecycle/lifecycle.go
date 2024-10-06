@@ -10,7 +10,6 @@ import (
 	"golang.org/x/exp/maps"
 	"k8s.io/apimachinery/pkg/api/equality"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -134,12 +133,23 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 		if l.manageConditions {
 			setSubroutineConditionToUnknownIfNotSet(&conditions, subroutine, inDeletion, log)
 		}
-		subResult, retry, err := l.reconcileSubroutine(ctx, instance, subroutine, log, sentryTags)
+
+		// Set current conditions before reconciling the subroutine
 		if l.manageConditions {
-			merr := mergeConditions(instance, &conditions, log)
-			if merr != nil {
-				return ctrl.Result{}, merr
+			instanceConditionsObj, err := toRuntimeObjectConditionsInterface(instance, log)
+			if err != nil {
+				return ctrl.Result{}, err
 			}
+			instanceConditionsObj.SetConditions(conditions)
+		}
+		subResult, retry, err := l.reconcileSubroutine(ctx, instance, subroutine, log, sentryTags)
+		// Update conditions with any changes the subroutine did
+		if l.manageConditions {
+			instanceConditionsObj, err := toRuntimeObjectConditionsInterface(instance, log)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			conditions = instanceConditionsObj.GetConditions()
 		}
 		if err != nil {
 			if l.manageConditions {
@@ -215,22 +225,6 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 
 	log.Info().Msg("end reconcile")
 	return result, nil
-}
-
-func mergeConditions(instance RuntimeObject, conditions *[]v1.Condition, log *logger.Logger) error {
-	instanceConditionsObj, err := toRuntimeObjectConditionsInterface(instance, log)
-	if err != nil {
-		return err
-	}
-
-	for _, cond := range instanceConditionsObj.GetConditions() {
-		// only set conditions that are not already managed by the lifecycle or previous subroutines
-		// This means to prevent overwriting of conditions that are set by the subroutines
-		if meta.FindStatusCondition(*conditions, cond.Type) == nil {
-			meta.SetStatusCondition(conditions, cond)
-		}
-	}
-	return nil
 }
 
 func (l *LifecycleManager) markResourceAsFinal(instance RuntimeObject, log *logger.Logger, conditions []v1.Condition, status v1.ConditionStatus) error {
@@ -386,9 +380,26 @@ func (l *LifecycleManager) addFinalizerIfNeeded(ctx context.Context, instance Ru
 		}
 	}
 	if update {
+		// When calling Update on the resource, any unsaved changes to the status like conditions will be lost. Let's keep the conditions before updating
+		var conditions []v1.Condition
+		if l.manageConditions {
+			instanceConditionsObj, err := toRuntimeObjectConditionsInterface(instance, l.log)
+			if err != nil {
+				return errors.NewOperatorError(errors.Wrap(err, "failed to get conditions"), true, false)
+			}
+			conditions = instanceConditionsObj.GetConditions()
+		}
+
 		updateErr := l.client.Update(ctx, instance)
 		if updateErr != nil {
 			return errors.NewOperatorError(errors.Wrap(updateErr, "failed to update instance"), true, false)
+		}
+		if l.manageConditions {
+			instanceConditionsObj, err := toRuntimeObjectConditionsInterface(instance, l.log)
+			if err != nil {
+				return errors.NewOperatorError(errors.Wrap(err, "failed to get conditions"), true, false)
+			}
+			instanceConditionsObj.SetConditions(conditions)
 		}
 	}
 	return nil
