@@ -108,8 +108,12 @@ func setSubroutineCondition(conditions *[]metav1.Condition, subroutine Subroutin
 			metav1.Condition{Type: conditionName, Status: metav1.ConditionUnknown, Message: fmt.Sprintf(subroutineMessageProcessingFormatString, conditionMessage), Reason: reasonProcessing})
 	}
 	// processing failed
+	var sErr error
+	if subroutineErr != nil {
+		sErr = subroutineErr
+	}
 	changed := meta.SetStatusCondition(conditions,
-		metav1.Condition{Type: conditionName, Status: metav1.ConditionFalse, Message: fmt.Sprintf(subroutineMessageErrorFormatString, conditionMessage, subroutineErr.Error()), Reason: reasonError})
+		metav1.Condition{Type: conditionName, Status: metav1.ConditionFalse, Message: fmt.Sprintf(subroutineMessageErrorFormatString, conditionMessage, sErr), Reason: reasonError})
 	if changed {
 		log.Info().Str("type", conditionName).Msg("updated condition")
 	}
