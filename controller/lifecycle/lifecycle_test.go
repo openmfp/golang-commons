@@ -1017,10 +1017,10 @@ func TestLifecycle(t *testing.T) {
 		mgr.WithConditionManagement()
 
 		// Act
-		_, err := mgr.Reconcile(ctx, request, instance)
-
-		assert.Error(t, err)
-		assert.Equal(t, "manageConditions is enabled, but instance does not implement RuntimeObjectConditions interface. This is a programming error", err.Error())
+		// So the validation is already happening in SetupWithManager. So we can panic in the reconcile.
+		assert.Panics(t, func() {
+			_, _ = mgr.Reconcile(ctx, request, instance)
+		})
 	})
 
 	t.Run("Lifecycle with manage conditions failing finalize", func(t *testing.T) {

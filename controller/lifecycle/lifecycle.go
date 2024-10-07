@@ -90,11 +90,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 	inDeletion := instance.GetDeletionTimestamp() != nil
 	var conditions []v1.Condition
 	if l.manageConditions {
-		instanceConditionsObj, err := toRuntimeObjectConditionsInterface(instance, log)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		conditions = instanceConditionsObj.GetConditions()
+		conditions = MustToRuntimeObjectConditionsInterface(instance, log).GetConditions()
 	}
 
 	if l.spreadReconciles && instance.GetDeletionTimestamp().IsZero() {
@@ -150,10 +146,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 				MustToRuntimeObjectConditionsInterface(instance, log).SetConditions(conditions)
 			}
 			if !retry {
-				err := l.markResourceAsFinal(instance, log, conditions, v1.ConditionFalse)
-				if err != nil {
-					return ctrl.Result{}, err
-				}
+				l.markResourceAsFinal(instance, log, conditions, v1.ConditionFalse)
 			}
 			_ = updateStatus(ctx, l.client, originalCopy, instance, log, sentryTags)
 			if !retry {
@@ -178,10 +171,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 
 	if !result.Requeue && result.RequeueAfter == 0 {
 		// Reconciliation was successful
-		err := l.markResourceAsFinal(instance, log, conditions, v1.ConditionTrue)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
+		l.markResourceAsFinal(instance, log, conditions, v1.ConditionTrue)
 	} else {
 		if l.manageConditions {
 			setInstanceConditionReady(&conditions, v1.ConditionFalse)
@@ -189,11 +179,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 	}
 
 	if l.manageConditions {
-		instanceConditionsObj, err := toRuntimeObjectConditionsInterface(instance, log)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		instanceConditionsObj.SetConditions(conditions)
+		MustToRuntimeObjectConditionsInterface(instance, log).SetConditions(conditions)
 	}
 
 	err = updateStatus(ctx, l.client, originalCopy, instance, log, sentryTags)
@@ -215,7 +201,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 	return result, nil
 }
 
-func (l *LifecycleManager) markResourceAsFinal(instance RuntimeObject, log *logger.Logger, conditions []v1.Condition, status v1.ConditionStatus) error {
+func (l *LifecycleManager) markResourceAsFinal(instance RuntimeObject, log *logger.Logger, conditions []v1.Condition, status v1.ConditionStatus) {
 	if l.spreadReconciles && instance.GetDeletionTimestamp().IsZero() {
 		instanceStatusObj := MustToRuntimeObjectSpreadReconcileStatusInterface(instance, log)
 		setNextReconcileTime(instanceStatusObj, log)
@@ -225,11 +211,25 @@ func (l *LifecycleManager) markResourceAsFinal(instance RuntimeObject, log *logg
 	if l.manageConditions {
 		setInstanceConditionReady(&conditions, status)
 	}
+}
+
+func (l *LifecycleManager) validateInterfaces(instance RuntimeObject, log *logger.Logger) error {
+	if l.spreadReconciles {
+		_, err := toRuntimeObjectSpreadReconcileStatusInterface(instance, log)
+		if err != nil {
+			return err
+		}
+	}
+	if l.manageConditions {
+		_, err := toRuntimeObjectConditionsInterface(instance, log)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
 func updateStatus(ctx context.Context, cl client.Client, original runtime.Object, current RuntimeObject, log *logger.Logger, sentryTags sentry.Tags) error {
-
 	currentUn, err := runtime.DefaultUnstructuredConverter.ToUnstructured(current)
 	if err != nil {
 		return err
@@ -371,11 +371,7 @@ func (l *LifecycleManager) addFinalizerIfNeeded(ctx context.Context, instance Ru
 		// When calling Update on the resource, any unsaved changes to the status like conditions will be lost. Let's keep the conditions before updating
 		var conditions []v1.Condition
 		if l.manageConditions {
-			instanceConditionsObj, err := toRuntimeObjectConditionsInterface(instance, l.log)
-			if err != nil {
-				return errors.NewOperatorError(errors.Wrap(err, "failed to get conditions"), true, false)
-			}
-			conditions = instanceConditionsObj.GetConditions()
+			conditions = MustToRuntimeObjectConditionsInterface(instance, l.log).GetConditions()
 		}
 
 		updateErr := l.client.Update(ctx, instance)
@@ -394,18 +390,8 @@ func (l *LifecycleManager) addFinalizerIfNeeded(ctx context.Context, instance Ru
 }
 
 func (l *LifecycleManager) SetupWithManagerBuilder(mgr ctrl.Manager, maxReconciles int, reconcilerName string, instance RuntimeObject, debugLabelValue string, log *logger.Logger, eventPredicates ...predicate.Predicate) (*builder.Builder, error) {
-	if l.manageConditions {
-		_, err := toRuntimeObjectConditionsInterface(instance, log)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if l.spreadReconciles {
-		_, err := toRuntimeObjectSpreadReconcileStatusInterface(instance, log)
-		if err != nil {
-			return nil, err
-		}
+	if err := l.validateInterfaces(instance, log); err != nil {
+		return nil, err
 	}
 
 	eventPredicates = append([]predicate.Predicate{filter.DebugResourcesBehaviourPredicate(debugLabelValue)}, eventPredicates...)
