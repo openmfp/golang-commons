@@ -88,10 +88,6 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 
 	originalCopy := instance.DeepCopyObject()
 	inDeletion := instance.GetDeletionTimestamp() != nil
-	var conditions []v1.Condition
-	if l.manageConditions {
-		conditions = MustToRuntimeObjectConditionsInterface(instance, log).GetConditions()
-	}
 
 	if l.spreadReconciles && instance.GetDeletionTimestamp().IsZero() {
 		instanceStatusObj := MustToRuntimeObjectSpreadReconcileStatusInterface(instance, log)
@@ -105,7 +101,15 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 		}
 	}
 
+	// Manage Finalizers
+	ferr := l.addFinalizersIfNeeded(ctx, instance)
+	if ferr != nil {
+		return ctrl.Result{}, ferr
+	}
+
+	var conditions []v1.Condition
 	if l.manageConditions {
+		conditions = MustToRuntimeObjectConditionsInterface(instance, log).GetConditions()
 		setInstanceConditionUnknownIfNotSet(&conditions)
 	}
 
@@ -321,11 +325,9 @@ func (l *LifecycleManager) reconcileSubroutine(ctx context.Context, instance Run
 			}
 		}
 	} else {
-		err = l.addFinalizerIfNeeded(ctx, instance, subroutine)
-		if err == nil {
-			result, err = subroutine.Process(ctx, instance)
-		}
+		result, err = subroutine.Process(ctx, instance)
 	}
+
 	if err != nil {
 		if err.Sentry() {
 			log.Error().Err(err.Err()).Msg("subroutine ended with error")
@@ -337,6 +339,36 @@ func (l *LifecycleManager) reconcileSubroutine(ctx context.Context, instance Run
 
 	subroutineLogger.Debug().Msg("end subroutine")
 	return result, false, nil
+}
+
+func (l *LifecycleManager) addFinalizersIfNeeded(ctx context.Context, instance RuntimeObject) error {
+	update := false
+	for _, subroutine := range l.subroutines {
+		if len(subroutine.Finalizers()) > 0 {
+			needsUpdate := l.addFinalizerIfNeeded(instance, subroutine)
+			if needsUpdate {
+				update = true
+			}
+		}
+	}
+	if update {
+		err := l.client.Update(ctx, instance)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (l *LifecycleManager) addFinalizerIfNeeded(instance RuntimeObject, subroutine Subroutine) bool {
+	update := false
+	for _, f := range subroutine.Finalizers() {
+		needsUpdate := controllerutil.AddFinalizer(instance, f)
+		if needsUpdate {
+			update = true
+		}
+	}
+	return update
 }
 
 func (l *LifecycleManager) removeFinalizerIfNeeded(ctx context.Context, instance RuntimeObject, subroutine Subroutine, result ctrl.Result) errors.OperatorError {
@@ -356,36 +388,6 @@ func (l *LifecycleManager) removeFinalizerIfNeeded(ctx context.Context, instance
 		}
 	}
 
-	return nil
-}
-
-func (l *LifecycleManager) addFinalizerIfNeeded(ctx context.Context, instance RuntimeObject, subroutine Subroutine) errors.OperatorError {
-	update := false
-	for _, f := range subroutine.Finalizers() {
-		needsUpdate := controllerutil.AddFinalizer(instance, f)
-		if needsUpdate {
-			update = true
-		}
-	}
-	if update {
-		// When calling Update on the resource, any unsaved changes to the status like conditions will be lost. Let's keep the conditions before updating
-		var conditions []v1.Condition
-		if l.manageConditions {
-			conditions = MustToRuntimeObjectConditionsInterface(instance, l.log).GetConditions()
-		}
-
-		updateErr := l.client.Update(ctx, instance)
-		if updateErr != nil {
-			return errors.NewOperatorError(errors.Wrap(updateErr, "failed to update instance"), true, false)
-		}
-		if l.manageConditions {
-			instanceConditionsObj, err := toRuntimeObjectConditionsInterface(instance, l.log)
-			if err != nil {
-				return errors.NewOperatorError(errors.Wrap(err, "failed to get conditions"), true, false)
-			}
-			instanceConditionsObj.SetConditions(conditions)
-		}
-	}
 	return nil
 }
 
