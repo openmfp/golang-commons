@@ -97,6 +97,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 
 		reconcileRequired := generationIsDifferent || isAfterNextReconcileTime || refreshRequested
 		if !reconcileRequired {
+			log.Info().Msg("skipping reconciliation, spread reconcile is active. No processing needed")
 			return onNextReconcile(instanceStatusObj, log)
 		}
 	}
