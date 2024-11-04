@@ -14,7 +14,7 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/jellydator/ttlcache/v3 v3.3.0
 	github.com/machinebox/graphql v0.2.2
-	github.com/openfga/api/proto v0.0.0-20241028145042-7c098f10acd2
+	github.com/openfga/api/proto v0.0.0-20241104193559-ee46d6721514
 	github.com/openfga/language/pkg/go v0.2.0-beta.2.0.20240926131254-992b301a003f
 	github.com/openfga/openfga v1.7.0
 	github.com/pkg/errors v0.9.1
