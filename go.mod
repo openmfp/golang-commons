@@ -23,7 +23,7 @@ require (
 	github.com/vektah/gqlparser/v2 v2.5.19
 	go.opentelemetry.io/otel v1.31.0
 	golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c
-	golang.org/x/oauth2 v0.23.0
+	golang.org/x/oauth2 v0.24.0
 	google.golang.org/grpc v1.68.0
 	k8s.io/api v0.31.2
 	k8s.io/apimachinery v0.31.2
