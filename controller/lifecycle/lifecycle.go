@@ -314,7 +314,7 @@ func containsFinalizer(o client.Object, subroutineFinalizers []string) bool {
 	return false
 }
 
-func (l *LifecycleManager) reconcileSubroutine(ctx context.Context, instance RuntimeObject, subroutine Subroutine, log *logger.Logger, generationIsDifferent bool, sentryTags map[string]string) (ctrl.Result, bool, error) {
+func (l *LifecycleManager) reconcileSubroutine(ctx context.Context, instance RuntimeObject, subroutine Subroutine, log *logger.Logger, generationChanged bool, sentryTags map[string]string) (ctrl.Result, bool, error) {
 	subroutineLogger := log.ChildLogger("subroutine", subroutine.GetName())
 	ctx = logger.SetLoggerInContext(ctx, subroutineLogger)
 	subroutineLogger.Debug().Msg("start subroutine")
@@ -336,8 +336,7 @@ func (l *LifecycleManager) reconcileSubroutine(ctx context.Context, instance Run
 	}
 
 	if err != nil {
-		if generationIsDifferent && err.Sentry() {
-			log.Error().Err(err.Err()).Msg("subroutine ended with error")
+		if generationChanged && err.Sentry() {
 			sentry.CaptureError(err.Err(), sentryTags)
 		}
 		subroutineLogger.Error().Err(err.Err()).Bool("retry", err.Retry()).Msg("subroutine ended with error")
