@@ -77,13 +77,14 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 	ctx = sentry.ContextWithSentryTags(ctx, sentryTags)
 
 	log.Info().Msg("start reconcile")
+	generationChanged := true
 	err := l.client.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			log.Info().Msg("instance not found. It was likely deleted")
 			return ctrl.Result{}, nil
 		}
-		return l.handleClientError("failed to retrieve instance", log, err, sentryTags)
+		return l.handleClientError("failed to retrieve instance", log, err, generationChanged, sentryTags)
 	}
 
 	originalCopy := instance.DeepCopyObject()
@@ -91,11 +92,11 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 
 	if l.spreadReconciles && instance.GetDeletionTimestamp().IsZero() {
 		instanceStatusObj := MustToRuntimeObjectSpreadReconcileStatusInterface(instance, log)
-		generationIsDifferent := instance.GetGeneration() != instanceStatusObj.GetObservedGeneration()
+		generationChanged = instance.GetGeneration() != instanceStatusObj.GetObservedGeneration()
 		isAfterNextReconcileTime := v1.Now().UTC().After(instanceStatusObj.GetNextReconcileTime().Time.UTC())
 		refreshRequested := slices.Contains(maps.Keys(instance.GetLabels()), SpreadReconcileRefreshLabel)
 
-		reconcileRequired := generationIsDifferent || isAfterNextReconcileTime || refreshRequested
+		reconcileRequired := generationChanged || isAfterNextReconcileTime || refreshRequested
 		if !reconcileRequired {
 			log.Info().Msg("skipping reconciliation, spread reconcile is active. No processing needed")
 			return onNextReconcile(instanceStatusObj, log)
@@ -117,7 +118,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 	if l.prepareContextFunc != nil {
 		localCtx, oErr := l.prepareContextFunc(ctx, instance)
 		if oErr != nil {
-			return l.handleOperatorError(ctx, oErr, "failed to prepare context")
+			return l.handleOperatorError(ctx, oErr, "failed to prepare context", generationChanged)
 		}
 		ctx = localCtx
 	}
@@ -139,7 +140,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 		if l.manageConditions {
 			MustToRuntimeObjectConditionsInterface(instance, log).SetConditions(conditions)
 		}
-		subResult, retry, err := l.reconcileSubroutine(ctx, instance, subroutine, log, sentryTags)
+		subResult, retry, err := l.reconcileSubroutine(ctx, instance, subroutine, log, generationChanged, sentryTags)
 		// Update conditions with any changes the subroutine did
 		if l.manageConditions {
 			conditions = MustToRuntimeObjectConditionsInterface(instance, log).GetConditions()
@@ -153,7 +154,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 			if !retry {
 				l.markResourceAsFinal(instance, log, conditions, v1.ConditionFalse)
 			}
-			_ = updateStatus(ctx, l.client, originalCopy, instance, log, sentryTags)
+			_ = updateStatus(ctx, l.client, originalCopy, instance, log, generationChanged, sentryTags)
 			if !retry {
 				return ctrl.Result{}, nil
 			}
@@ -187,7 +188,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 		MustToRuntimeObjectConditionsInterface(instance, log).SetConditions(conditions)
 	}
 
-	err = updateStatus(ctx, l.client, originalCopy, instance, log, sentryTags)
+	err = updateStatus(ctx, l.client, originalCopy, instance, log, generationChanged, sentryTags)
 	if err != nil {
 		return result, err
 	}
@@ -197,7 +198,7 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 		if removed {
 			updateErr := l.client.Update(ctx, instance)
 			if updateErr != nil {
-				return l.handleClientError("failed to update instance", log, err, sentryTags)
+				return l.handleClientError("failed to update instance", log, err, generationChanged, sentryTags)
 			}
 		}
 	}
@@ -234,7 +235,7 @@ func (l *LifecycleManager) validateInterfaces(instance RuntimeObject, log *logge
 	return nil
 }
 
-func updateStatus(ctx context.Context, cl client.Client, original runtime.Object, current RuntimeObject, log *logger.Logger, sentryTags sentry.Tags) error {
+func updateStatus(ctx context.Context, cl client.Client, original runtime.Object, current RuntimeObject, log *logger.Logger, generationChanged bool, sentryTags sentry.Tags) error {
 	currentUn, err := runtime.DefaultUnstructuredConverter.ToUnstructured(current)
 	if err != nil {
 		return err
@@ -271,7 +272,9 @@ func updateStatus(ctx context.Context, cl client.Client, original runtime.Object
 	if err != nil {
 		if !kerrors.IsConflict(err) {
 			log.Error().Err(err).Msg("cannot update status, kubernetes client error")
-			sentry.CaptureError(err, sentryTags, sentry.Extras{"message": "Updating of instance status failed"})
+			if generationChanged {
+				sentry.CaptureError(err, sentryTags, sentry.Extras{"message": "Updating of instance status failed"})
+			}
 		}
 		log.Error().Err(err).Msg("cannot update reconciliation Conditions, kubernetes client error")
 		return err
@@ -280,9 +283,9 @@ func updateStatus(ctx context.Context, cl client.Client, original runtime.Object
 	return nil
 }
 
-func (l *LifecycleManager) handleOperatorError(ctx context.Context, operatorError errors.OperatorError, msg string) (ctrl.Result, error) {
+func (l *LifecycleManager) handleOperatorError(ctx context.Context, operatorError errors.OperatorError, msg string, generationChanged bool) (ctrl.Result, error) {
 	l.log.Error().Bool("retry", operatorError.Retry()).Bool("sentry", operatorError.Sentry()).Err(operatorError.Err()).Msg(msg)
-	if operatorError.Sentry() {
+	if generationChanged && operatorError.Sentry() {
 		sentry.CaptureError(operatorError.Err(), sentry.GetSentryTagsFromContext(ctx))
 	}
 
@@ -293,9 +296,12 @@ func (l *LifecycleManager) handleOperatorError(ctx context.Context, operatorErro
 	return ctrl.Result{}, nil
 }
 
-func (l *LifecycleManager) handleClientError(msg string, log *logger.Logger, err error, sentryTags sentry.Tags) (ctrl.Result, error) {
+func (l *LifecycleManager) handleClientError(msg string, log *logger.Logger, err error, generationChanged bool, sentryTags sentry.Tags) (ctrl.Result, error) {
 	log.Error().Err(err).Msg(msg)
-	sentry.CaptureError(err, sentryTags)
+	if generationChanged {
+		sentry.CaptureError(err, sentryTags)
+	}
+
 	return ctrl.Result{}, err
 }
 
@@ -308,7 +314,7 @@ func containsFinalizer(o client.Object, subroutineFinalizers []string) bool {
 	return false
 }
 
-func (l *LifecycleManager) reconcileSubroutine(ctx context.Context, instance RuntimeObject, subroutine Subroutine, log *logger.Logger, sentryTags map[string]string) (ctrl.Result, bool, error) {
+func (l *LifecycleManager) reconcileSubroutine(ctx context.Context, instance RuntimeObject, subroutine Subroutine, log *logger.Logger, generationIsDifferent bool, sentryTags map[string]string) (ctrl.Result, bool, error) {
 	subroutineLogger := log.ChildLogger("subroutine", subroutine.GetName())
 	ctx = logger.SetLoggerInContext(ctx, subroutineLogger)
 	subroutineLogger.Debug().Msg("start subroutine")
@@ -330,7 +336,7 @@ func (l *LifecycleManager) reconcileSubroutine(ctx context.Context, instance Run
 	}
 
 	if err != nil {
-		if err.Sentry() {
+		if generationIsDifferent && err.Sentry() {
 			log.Error().Err(err.Err()).Msg("subroutine ended with error")
 			sentry.CaptureError(err.Err(), sentryTags)
 		}

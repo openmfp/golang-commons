@@ -570,7 +570,7 @@ func TestLifecycle(t *testing.T) {
 		testErr := fmt.Errorf("test error")
 
 		// Act
-		result, err := lm.handleClientError("test", log.Logger, testErr, sentry.Tags{})
+		result, err := lm.handleClientError("test", log.Logger, testErr, true, sentry.Tags{})
 
 		// Assert
 		assert.Error(t, err)
@@ -1208,7 +1208,7 @@ func TestLifecycle(t *testing.T) {
 			ctx = sentry.ContextWithSentryTags(ctx, map[string]string{})
 
 			// Act
-			result, err := lm.handleOperatorError(ctx, operrors.NewOperatorError(goerrors.New(errorMessage), true, true), "handle op error")
+			result, err := lm.handleOperatorError(ctx, operrors.NewOperatorError(goerrors.New(errorMessage), true, true), "handle op error", true)
 
 			// Assert
 			assert.Error(t, err)
@@ -1228,7 +1228,7 @@ func TestLifecycle(t *testing.T) {
 			lm, log := createLifecycleManager([]Subroutine{}, fakeClient)
 
 			// Act
-			result, err := lm.handleOperatorError(ctx, operrors.NewOperatorError(goerrors.New(errorMessage), false, false), "handle op error")
+			result, err := lm.handleOperatorError(ctx, operrors.NewOperatorError(goerrors.New(errorMessage), false, false), "handle op error", true)
 
 			// Assert
 			assert.Nil(t, err)
@@ -1303,7 +1303,7 @@ func TestUpdateStatus(t *testing.T) {
 			}}
 
 		// When
-		err := updateStatus(context.Background(), clientMock, original, original, log, nil)
+		err := updateStatus(context.Background(), clientMock, original, original, log, true, nil)
 
 		// Then
 		assert.NoError(t, err)
@@ -1328,7 +1328,7 @@ func TestUpdateStatus(t *testing.T) {
 			Return(errors.NewBadRequest("internal error"))
 
 		// When
-		err := updateStatus(context.Background(), clientMock, original, current, log, nil)
+		err := updateStatus(context.Background(), clientMock, original, current, log, true, nil)
 
 		// Then
 		assert.Error(t, err)
@@ -1339,7 +1339,7 @@ func TestUpdateStatus(t *testing.T) {
 		original := &testSupport.TestNoStatusApiObject{}
 		current := &implementConditions{}
 		// When
-		err := updateStatus(context.Background(), clientMock, original, current, log, nil)
+		err := updateStatus(context.Background(), clientMock, original, current, log, true, nil)
 
 		// Then
 		assert.Error(t, err)
@@ -1349,7 +1349,7 @@ func TestUpdateStatus(t *testing.T) {
 		original := &implementConditions{}
 		current := &testSupport.TestNoStatusApiObject{}
 		// When
-		err := updateStatus(context.Background(), clientMock, original, current, log, nil)
+		err := updateStatus(context.Background(), clientMock, original, current, log, true, nil)
 
 		// Then
 		assert.Error(t, err)
