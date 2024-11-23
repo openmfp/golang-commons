@@ -19,7 +19,7 @@ require (
 	github.com/openfga/openfga v1.7.0
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.33.0
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	github.com/vektah/gqlparser/v2 v2.5.19
 	go.opentelemetry.io/otel v1.32.0
 	golang.org/x/exp v0.0.0-20241108190413-2d47ceb2692f
