@@ -325,14 +325,18 @@ func (l *LifecycleManager) reconcileSubroutine(ctx context.Context, instance Run
 	var err errors.OperatorError
 	if instance.GetDeletionTimestamp() != nil {
 		if containsFinalizer(instance, subroutine.Finalizers()) {
+			subroutineLogger.Debug().Msg("finalizing instance")
 			result, err = subroutine.Finalize(ctx, instance)
+			subroutineLogger.Debug().Any("result", result).Msg("finalized instance")
 			if err == nil {
 				// Remove finalizers unless requeue is requested
 				err = l.removeFinalizerIfNeeded(ctx, instance, subroutine, result)
 			}
 		}
 	} else {
+		subroutineLogger.Debug().Msg("processing instance")
 		result, err = subroutine.Process(ctx, instance)
+		subroutineLogger.Debug().Any("result", result).Msg("processed instance")
 	}
 
 	if err != nil {

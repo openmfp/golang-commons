@@ -225,12 +225,12 @@ func TestLifecycle(t *testing.T) {
 		assert.NotNil(t, result)
 		logMessages, err := log.GetLogMessages()
 		assert.NoError(t, err)
-		assert.Equal(t, len(logMessages), 5)
+		assert.Equal(t, len(logMessages), 7)
 		assert.Equal(t, logMessages[0].Message, "start reconcile")
 		assert.Equal(t, logMessages[1].Message, "start subroutine")
-		assert.Equal(t, logMessages[2].Message, "end subroutine")
-		assert.Equal(t, logMessages[3].Message, "updating resource status")
-		assert.Equal(t, logMessages[4].Message, "end reconcile")
+		assert.Equal(t, logMessages[2].Message, "processing instance")
+		assert.Equal(t, logMessages[3].Message, "processed instance")
+		assert.Equal(t, logMessages[4].Message, "end subroutine")
 
 		serverObject := &testSupport.TestApiObject{}
 		err = fakeClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, serverObject)
