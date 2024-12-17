@@ -352,6 +352,10 @@ func (l *LifecycleManager) reconcileSubroutine(ctx context.Context, instance Run
 }
 
 func (l *LifecycleManager) addFinalizersIfNeeded(ctx context.Context, instance RuntimeObject) error {
+	if !instance.GetDeletionTimestamp().IsZero() {
+		return nil
+	}
+
 	update := false
 	for _, subroutine := range l.subroutines {
 		if len(subroutine.Finalizers()) > 0 {
