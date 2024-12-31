@@ -1,9 +1,10 @@
 package client
 
 import (
-	"github.com/openmfp/golang-commons/fga/client/mocks"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/openmfp/golang-commons/directive/mocks"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewOpenFGAClient(t *testing.T) {
