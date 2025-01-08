@@ -3,7 +3,7 @@ module github.com/openmfp/golang-commons
 go 1.23.2
 
 require (
-	github.com/99designs/gqlgen v0.17.62
+	github.com/99designs/gqlgen v0.17.63
 	github.com/getsentry/sentry-go v0.31.1
 	github.com/go-http-utils/headers v0.0.0-20181008091004-fed159eddc2a
 	github.com/go-jose/go-jose/v4 v4.0.4
