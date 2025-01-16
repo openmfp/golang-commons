@@ -25,9 +25,9 @@ require (
 	golang.org/x/exp v0.0.0-20250106191152-7588d65b2ba8
 	golang.org/x/oauth2 v0.25.0
 	google.golang.org/grpc v1.69.4
-	k8s.io/api v0.32.0
-	k8s.io/apimachinery v0.32.0
-	k8s.io/client-go v0.32.0
+	k8s.io/api v0.32.1
+	k8s.io/apimachinery v0.32.1
+	k8s.io/client-go v0.32.1
 	sigs.k8s.io/controller-runtime v0.19.4
 )
 
