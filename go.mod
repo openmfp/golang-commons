@@ -22,7 +22,7 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/vektah/gqlparser/v2 v2.5.22
 	go.opentelemetry.io/otel v1.34.0
-	golang.org/x/exp v0.0.0-20250215185904-eff6e970281f
+	golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa
 	golang.org/x/oauth2 v0.26.0
 	google.golang.org/grpc v1.70.0
 	k8s.io/api v0.32.2
