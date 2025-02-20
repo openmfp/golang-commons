@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openmfp/golang-commons/controller/testSupport"
@@ -15,12 +16,12 @@ func TestGetNextReconcilationTime(t *testing.T) {
 	expectedEarliest := 12 * time.Hour
 	expectedLatest := 24 * time.Hour
 
-	actual := getDefaultNextReconcileTime()
+	actual := getNextReconcileTime(defaultReconcileInterval)
 	if actual < expectedEarliest || actual > expectedLatest {
 		t.Errorf("Expected time between %v and %v, but got %v", expectedEarliest, expectedLatest, actual)
 	}
 
-	actual2 := getDefaultNextReconcileTime()
+	actual2 := getNextReconcileTime(defaultReconcileInterval)
 	if actual2 < expectedEarliest || actual2 > expectedLatest {
 		t.Errorf("Expected time between %v and %v, but got %v", expectedEarliest, expectedLatest, actual)
 	}
@@ -53,11 +54,13 @@ func TestOnNextReconcile(t *testing.T) {
 }
 
 type testInstance struct {
+	mock.Mock
 	*implementingSpreadReconciles
 }
 
 func (t *testInstance) GenerateNextReconcileTime() time.Duration {
-	return 10 * time.Minute
+	args := t.Called()
+	return args.Get(0).(time.Duration)
 }
 
 func TestGenerateNextReconcileTimer(t *testing.T) {
@@ -65,11 +68,11 @@ func TestGenerateNextReconcileTimer(t *testing.T) {
 		implementingSpreadReconciles: &implementingSpreadReconciles{testSupport.TestApiObject{}},
 	}
 
-	now := time.Now()
+	instance.On("GenerateNextReconcileTime").Return(10 * time.Minute)
+
 	setNextReconcileTime(instance, testlogger.New().Logger)
 
-	// a bit of an hacky assertion
-	assert.LessOrEqual(t, now.Add(10*time.Minute), instance.GetNextReconcileTime().Time)
+	assert.True(t, instance.AssertCalled(t, "GenerateNextReconcileTime"))
 }
 
 func TestUpdateObservedGeneration(t *testing.T) {

@@ -2,6 +2,7 @@ package lifecycle
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"time"
 
@@ -32,9 +33,12 @@ type GenerateNextReconcileTimer interface {
 	GenerateNextReconcileTime() time.Duration
 }
 
-// getDefaultNextReconcileTime returns a random time between 12 and 24 hours
-func getDefaultNextReconcileTime() time.Duration {
-	return 12*time.Hour + time.Duration(rand.Int63n(12*60))*time.Minute
+const defaultReconcileInterval = 12 * time.Hour
+
+// getNextReconcileTime returns a random time between 12 and 24 hours
+func getNextReconcileTime(lowBorder time.Duration) time.Duration {
+	roundedUpperBorder := math.Floor(lowBorder.Minutes())
+	return lowBorder + time.Duration(rand.Int63n(int64(roundedUpperBorder)))*time.Minute
 }
 
 // onNextReconcile is a helper function to set the next reconcile time and return the requeueAfter time
@@ -47,12 +51,13 @@ func onNextReconcile(instanceStatusObj RuntimeObjectSpreadReconcileStatus, log *
 // setNextReconcileTime calculates and sets the next reconcile time for the instance
 func setNextReconcileTime(instanceStatusObj RuntimeObjectSpreadReconcileStatus, log *logger.Logger) {
 
-	var nextReconcileTime time.Duration
+	var border = defaultReconcileInterval
 	if in, ok := instanceStatusObj.(GenerateNextReconcileTimer); ok {
-		nextReconcileTime = in.GenerateNextReconcileTime()
-	} else {
-		nextReconcileTime = getDefaultNextReconcileTime()
+		border = in.GenerateNextReconcileTime()
 	}
+
+	nextReconcileTime := getNextReconcileTime(border)
+
 	log.Debug().Int64("minutes-till-next-execution", int64(nextReconcileTime.Minutes())).Msg("Setting next reconcile time for the instance")
 	instanceStatusObj.SetNextReconcileTime(v1.NewTime(time.Now().Add(nextReconcileTime)))
 }
