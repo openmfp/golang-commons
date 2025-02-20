@@ -16,12 +16,12 @@ func TestGetNextReconcilationTime(t *testing.T) {
 	expectedEarliest := 12 * time.Hour
 	expectedLatest := 24 * time.Hour
 
-	actual := getNextReconcileTime(defaultReconcileInterval)
+	actual := getNextReconcileTime(defaultMaxReconcileDuration)
 	if actual < expectedEarliest || actual > expectedLatest {
 		t.Errorf("Expected time between %v and %v, but got %v", expectedEarliest, expectedLatest, actual)
 	}
 
-	actual2 := getNextReconcileTime(defaultReconcileInterval)
+	actual2 := getNextReconcileTime(defaultMaxReconcileDuration)
 	if actual2 < expectedEarliest || actual2 > expectedLatest {
 		t.Errorf("Expected time between %v and %v, but got %v", expectedEarliest, expectedLatest, actual)
 	}

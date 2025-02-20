@@ -2,8 +2,7 @@ package lifecycle
 
 import (
 	"fmt"
-	"math"
-	"math/rand"
+	"math/rand/v2"
 	"time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,12 +32,16 @@ type GenerateNextReconcileTimer interface {
 	GenerateNextReconcileTime() time.Duration
 }
 
-const defaultReconcileInterval = 12 * time.Hour
+const defaultMaxReconcileDuration = 24 * time.Hour
 
-// getNextReconcileTime returns a random time between 12 and 24 hours
-func getNextReconcileTime(lowBorder time.Duration) time.Duration {
-	roundedUpperBorder := math.Floor(lowBorder.Minutes())
-	return lowBorder + time.Duration(rand.Int63n(int64(roundedUpperBorder)))*time.Minute
+// getNextReconcileTime returns a random time between [maxReconcileTime]/2 and [maxReconcileTime] hours
+func getNextReconcileTime(maxReconcileTime time.Duration) time.Duration {
+
+	minTime := maxReconcileTime.Minutes() / 2
+
+	jitter := rand.Int64N(int64(minTime))
+
+	return time.Duration(jitter+int64(minTime)) * time.Minute
 }
 
 // onNextReconcile is a helper function to set the next reconcile time and return the requeueAfter time
@@ -51,7 +54,7 @@ func onNextReconcile(instanceStatusObj RuntimeObjectSpreadReconcileStatus, log *
 // setNextReconcileTime calculates and sets the next reconcile time for the instance
 func setNextReconcileTime(instanceStatusObj RuntimeObjectSpreadReconcileStatus, log *logger.Logger) {
 
-	var border = defaultReconcileInterval
+	var border = defaultMaxReconcileDuration
 	if in, ok := instanceStatusObj.(GenerateNextReconcileTimer); ok {
 		border = in.GenerateNextReconcileTime()
 	}
