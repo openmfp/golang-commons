@@ -28,8 +28,12 @@ type RuntimeObjectSpreadReconcileStatus interface {
 	SetNextReconcileTime(time v1.Time)
 }
 
-// getNextReconcileTime returns a random time between 12 and 24 hours
-func getNextReconcileTime() time.Duration {
+type GenerateNextReconcileTimer interface {
+	GenerateNextReconcileTime() time.Duration
+}
+
+// getDefaultNextReconcileTime returns a random time between 12 and 24 hours
+func getDefaultNextReconcileTime() time.Duration {
 	return 12*time.Hour + time.Duration(rand.Int63n(12*60))*time.Minute
 }
 
@@ -42,7 +46,13 @@ func onNextReconcile(instanceStatusObj RuntimeObjectSpreadReconcileStatus, log *
 
 // setNextReconcileTime calculates and sets the next reconcile time for the instance
 func setNextReconcileTime(instanceStatusObj RuntimeObjectSpreadReconcileStatus, log *logger.Logger) {
-	nextReconcileTime := getNextReconcileTime()
+
+	var nextReconcileTime time.Duration
+	if in, ok := instanceStatusObj.(GenerateNextReconcileTimer); ok {
+		nextReconcileTime = in.GenerateNextReconcileTime()
+	} else {
+		nextReconcileTime = getDefaultNextReconcileTime()
+	}
 	log.Debug().Int64("minutes-till-next-execution", int64(nextReconcileTime.Minutes())).Msg("Setting next reconcile time for the instance")
 	instanceStatusObj.SetNextReconcileTime(v1.NewTime(time.Now().Add(nextReconcileTime)))
 }

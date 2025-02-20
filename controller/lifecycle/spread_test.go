@@ -15,12 +15,12 @@ func TestGetNextReconcilationTime(t *testing.T) {
 	expectedEarliest := 12 * time.Hour
 	expectedLatest := 24 * time.Hour
 
-	actual := getNextReconcileTime()
+	actual := getDefaultNextReconcileTime()
 	if actual < expectedEarliest || actual > expectedLatest {
 		t.Errorf("Expected time between %v and %v, but got %v", expectedEarliest, expectedLatest, actual)
 	}
 
-	actual2 := getNextReconcileTime()
+	actual2 := getDefaultNextReconcileTime()
 	if actual2 < expectedEarliest || actual2 > expectedLatest {
 		t.Errorf("Expected time between %v and %v, but got %v", expectedEarliest, expectedLatest, actual)
 	}
@@ -50,6 +50,26 @@ func TestOnNextReconcile(t *testing.T) {
 	messages, err := tl.GetLogMessages()
 	assert.NoError(t, err)
 	assert.Contains(t, messages[0].Message, "no processing needed")
+}
+
+type testInstance struct {
+	*implementingSpreadReconciles
+}
+
+func (t *testInstance) GenerateNextReconcileTime() time.Duration {
+	return 10 * time.Minute
+}
+
+func TestGenerateNextReconcileTimer(t *testing.T) {
+	instance := &testInstance{
+		implementingSpreadReconciles: &implementingSpreadReconciles{testSupport.TestApiObject{}},
+	}
+
+	now := time.Now()
+	setNextReconcileTime(instance, testlogger.New().Logger)
+
+	// a bit of an hacky assertion
+	assert.LessOrEqual(t, now.Add(10*time.Minute), instance.GetNextReconcileTime().Time)
 }
 
 func TestUpdateObservedGeneration(t *testing.T) {
