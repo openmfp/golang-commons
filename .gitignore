@@ -1,5 +1,6 @@
 
 # common output file extension from code coverage
 *.out
+,DS_Store
 .idea
 /bin
