@@ -18,7 +18,7 @@ require (
 	github.com/openfga/language/pkg/go v0.2.0-beta.2.0.20240926131254-992b301a003f
 	github.com/openfga/openfga v1.7.0
 	github.com/pkg/errors v0.9.1
-	github.com/rs/zerolog v1.33.0
+	github.com/rs/zerolog v1.34.0
 	github.com/stretchr/testify v1.10.0
 	github.com/vektah/gqlparser/v2 v2.5.23
 	go.opentelemetry.io/otel v1.35.0
