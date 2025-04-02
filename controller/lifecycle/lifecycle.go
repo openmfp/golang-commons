@@ -35,6 +35,7 @@ type LifecycleManager struct {
 	controllerName     string
 	spreadReconciles   bool
 	manageConditions   bool
+	readOnly           bool
 	prepareContextFunc PrepareContextFunc
 }
 
@@ -154,7 +155,9 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 			if !retry {
 				l.markResourceAsFinal(instance, log, conditions, v1.ConditionFalse)
 			}
-			_ = updateStatus(ctx, l.client, originalCopy, instance, log, generationChanged, sentryTags)
+			if !l.readOnly {
+				_ = updateStatus(ctx, l.client, originalCopy, instance, log, generationChanged, sentryTags)
+			}
 			if !retry {
 				return ctrl.Result{}, nil
 			}
@@ -188,9 +191,11 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 		MustToRuntimeObjectConditionsInterface(instance, log).SetConditions(conditions)
 	}
 
-	err = updateStatus(ctx, l.client, originalCopy, instance, log, generationChanged, sentryTags)
-	if err != nil {
-		return result, err
+	if !l.readOnly {
+		err = updateStatus(ctx, l.client, originalCopy, instance, log, generationChanged, sentryTags)
+		if err != nil {
+			return result, err
+		}
 	}
 
 	if l.spreadReconciles && instance.GetDeletionTimestamp().IsZero() {
@@ -352,6 +357,10 @@ func (l *LifecycleManager) reconcileSubroutine(ctx context.Context, instance Run
 }
 
 func (l *LifecycleManager) addFinalizersIfNeeded(ctx context.Context, instance RuntimeObject) error {
+	if l.readOnly {
+		return nil
+	}
+
 	if !instance.GetDeletionTimestamp().IsZero() {
 		return nil
 	}
@@ -386,6 +395,10 @@ func (l *LifecycleManager) addFinalizerIfNeeded(instance RuntimeObject, subrouti
 }
 
 func (l *LifecycleManager) removeFinalizerIfNeeded(ctx context.Context, instance RuntimeObject, subroutine Subroutine, result ctrl.Result) errors.OperatorError {
+	if l.readOnly {
+		return nil
+	}
+
 	if !result.Requeue && result.RequeueAfter == 0 {
 		update := false
 		for _, f := range subroutine.Finalizers() {
@@ -408,6 +421,10 @@ func (l *LifecycleManager) removeFinalizerIfNeeded(ctx context.Context, instance
 func (l *LifecycleManager) SetupWithManagerBuilder(mgr ctrl.Manager, maxReconciles int, reconcilerName string, instance RuntimeObject, debugLabelValue string, log *logger.Logger, eventPredicates ...predicate.Predicate) (*builder.Builder, error) {
 	if err := l.validateInterfaces(instance, log); err != nil {
 		return nil, err
+	}
+
+	if (l.manageConditions || l.spreadReconciles) && l.readOnly {
+		return nil, fmt.Errorf("cannot use conditions or spread reconciles in read-only mode")
 	}
 
 	eventPredicates = append([]predicate.Predicate{filter.DebugResourcesBehaviourPredicate(debugLabelValue)}, eventPredicates...)
@@ -434,5 +451,12 @@ type PrepareContextFunc func(ctx context.Context, instance RuntimeObject) (conte
 // You need to return a new context and an OperatorError in case of an error
 func (l *LifecycleManager) WithPrepareContextFunc(prepareFunction PrepareContextFunc) *LifecycleManager {
 	l.prepareContextFunc = prepareFunction
+	return l
+}
+
+// WithReadOnly allows to set the controller to read-only mode
+// In read-only mode, the controller will not update the status of the instance
+func (l *LifecycleManager) WithReadOnly() *LifecycleManager {
+	l.readOnly = true
 	return l
 }
