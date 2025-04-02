@@ -3,6 +3,7 @@ package config_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/openmfp/golang-commons/config"
 	"github.com/stretchr/testify/assert"
@@ -21,9 +22,15 @@ func TestNewConfigFor(t *testing.T) {
 
 	type test struct {
 		config.CommonServiceConfig
-		CustomFlag     string `mapstructure:"custom-flag"`
-		CustomFlagInt  int    `mapstructure:"custom-flag-int"`
-		CustomFlagBool bool   `mapstructure:"custom-flag-bool"`
+		CustomFlag       string `mapstructure:"custom-flag"`
+		CustomFlagInt    int    `mapstructure:"custom-flag-int"`
+		CustomFlagBool   bool   `mapstructure:"custom-flag-bool"`
+		CustomFlagStruct struct {
+			CustomFlagDuration time.Duration `mapstructure:"custom-flag-duration"`
+		} `mapstructure:",squash"`
+		CustomFlagStruct2 struct {
+			CustomFlagDuration time.Duration `mapstructure:"custom-flag-duration-2"`
+		} `mapstructure:"le-flag"`
 	}
 
 	testStruct := test{}
