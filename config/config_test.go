@@ -21,8 +21,9 @@ func TestNewConfigFor(t *testing.T) {
 
 	type test struct {
 		config.CommonServiceConfig
-		CustomFlag    string `mapstructure:"custom-flag"`
-		CustomFlagInt int    `mapstructure:"custom-flag-int"`
+		CustomFlag     string `mapstructure:"custom-flag"`
+		CustomFlagInt  int    `mapstructure:"custom-flag-int"`
+		CustomFlagBool bool   `mapstructure:"custom-flag-bool"`
 	}
 
 	testStruct := test{}
