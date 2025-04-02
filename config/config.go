@@ -110,7 +110,6 @@ func traverseStruct(value reflect.Value, flagSet *pflag.FlagSet, prefix string) 
 			flagSet.String(prefix+tag, "", fmt.Sprintf("Set the %s", tag))
 		case reflect.Int, reflect.Int64:
 			if fieldValue.Type() == reflect.TypeOf(time.Duration(0)) {
-
 				flagSet.Duration(prefix+tag, 0, fmt.Sprintf("Set the %s", tag))
 			} else {
 				flagSet.Int(prefix+tag, 0, fmt.Sprintf("Set the %s", tag))
