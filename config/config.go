@@ -121,15 +121,18 @@ func traverseStruct(value reflect.Value, flagSet *pflag.FlagSet, prefix string) 
 	}
 }
 
-func NewConfigFor(serviceConfig any) *viper.Viper {
+func NewConfigFor(serviceConfig any) (*viper.Viper, error) {
 	v := viper.NewWithOptions(
 		viper.EnvKeyReplacer(strings.NewReplacer("-", "_")),
 	)
 
 	v.AutomaticEnv()
 
-	v.BindPFlags(CommonFlags())
-	v.BindPFlags(generateFlagSet(serviceConfig))
+	err := v.BindPFlags(CommonFlags())
+	if err != nil {
+		return nil, err
+	}
+	err = v.BindPFlags(generateFlagSet(serviceConfig))
 
-	return v
+	return v, err
 }
