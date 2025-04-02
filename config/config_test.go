@@ -1,17 +1,35 @@
-package config
+package config_test
 
 import (
 	"context"
 	"testing"
 
+	"github.com/openmfp/golang-commons/config"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSetConfigInContext(t *testing.T) {
 	ctx := context.Background()
-	config := "test"
-	ctx = SetConfigInContext(ctx, config)
+	configStr := "test"
+	ctx = config.SetConfigInContext(ctx, configStr)
 
-	retrievedConfig := LoadConfigFromContext(ctx)
-	assert.Equal(t, config, retrievedConfig)
+	retrievedConfig := config.LoadConfigFromContext(ctx)
+	assert.Equal(t, configStr, retrievedConfig)
+}
+
+func TestNewConfigFor(t *testing.T) {
+
+	type test struct {
+		config.CommonServiceConfig
+		CustomFlag string `mapstructure:"custom-flag"`
+	}
+
+	testStruct := test{}
+
+	v, err := config.NewConfigFor(&testStruct)
+	assert.NoError(t, err)
+
+	err = v.Unmarshal(&testStruct)
+	assert.NoError(t, err)
+
 }
