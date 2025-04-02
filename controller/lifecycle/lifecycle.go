@@ -423,6 +423,10 @@ func (l *LifecycleManager) SetupWithManagerBuilder(mgr ctrl.Manager, maxReconcil
 		return nil, err
 	}
 
+	if (l.manageConditions || l.spreadReconciles) && l.readOnly {
+		return nil, fmt.Errorf("cannot use conditions or spread reconciles in read-only mode")
+	}
+
 	eventPredicates = append([]predicate.Predicate{filter.DebugResourcesBehaviourPredicate(debugLabelValue)}, eventPredicates...)
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(reconcilerName).
