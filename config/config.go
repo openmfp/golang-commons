@@ -7,10 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openmfp/golang-commons/context/keys"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+
+	"github.com/openmfp/golang-commons/context/keys"
 )
 
 func SetConfigInContext(ctx context.Context, config any) context.Context {
@@ -27,6 +28,7 @@ type CommonServiceConfig struct {
 	Environment             string `mapstructure:"environment"`
 	Region                  string `mapstructure:"region"`
 	Kubeconfig              string `mapstructure:"kubeconfig"`
+	IsLocal                 bool   `mapstructure:"is-local"`
 
 	Image struct {
 		Name string `mapstructure:"image-name"`
@@ -34,14 +36,18 @@ type CommonServiceConfig struct {
 	} `mapstructure:",squash"`
 
 	Log struct {
-		Level string `mapstructure:"log-level"`
-
-		NoJson bool `mapstructure:"no-json"`
+		Level  string `mapstructure:"log-level"`
+		NoJson bool   `mapstructure:"no-json"`
 	} `mapstructure:",squash"`
 
-	ShutdownTimeout        time.Duration `mapstructure:"shutdown-timeout"`
-	MetricsBindAddress     string        `mapstructure:"metrics-bind-address"`
-	HealthProbeBindAddress string        `mapstructure:"health-probe-bind-address"`
+	ShutdownTimeout time.Duration `mapstructure:"shutdown-timeout"`
+	Metrics         struct {
+		BindAddress string `mapstructure:"metrics-bind-address"`
+		Secure      bool   `mapstructure:"metrics-secure"`
+		EnableHTTP2 bool   `mapstructure:"metrics-enable-http2"`
+	} `mapstructure:",squash"`
+
+	HealthProbeBindAddress string `mapstructure:"health-probe-bind-address"`
 
 	LeaderElection struct {
 		Enabled bool `mapstructure:"leader-elect"`
@@ -63,8 +69,11 @@ func CommonFlags() *pflag.FlagSet {
 	flagSet.String("image-tag", "latest", "Set the image tag")
 	flagSet.String("log-level", "info", "Set the log level")
 	flagSet.Bool("no-json", false, "Disable JSON logging")
+	flagSet.Bool("is-local", false, "Flagging execution to be local")
 	flagSet.Duration("shutdown-timeout", 1*time.Minute, "Set the shutdown timeout")
 	flagSet.String("metrics-bind-address", ":8080", "Set the metrics bind address")
+	flagSet.Bool("metrics-secure", false, "Set if metrics should be exposed via https")
+	flagSet.Bool("metrics-enable-http2", true, "Toggle to disable metrics serving using http2")
 	flagSet.String("health-probe-bind-address", ":8090", "Set the health probe bind address")
 	flagSet.Bool("leader-elect", false, "Enable leader election")
 	flagSet.String("sentry-dsn", "", "Set the Sentry DSN")
