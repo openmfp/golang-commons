@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/openmfp/golang-commons/config"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,7 +20,7 @@ func TestSetConfigInContext(t *testing.T) {
 	assert.Equal(t, configStr, retrievedConfig)
 }
 
-func TestNewConfigFor(t *testing.T) {
+func TestBindConfigToFlags(t *testing.T) {
 
 	type test struct {
 		config.CommonServiceConfig
@@ -35,10 +37,17 @@ func TestNewConfigFor(t *testing.T) {
 
 	testStruct := test{}
 
-	v, err := config.NewConfigFor(&testStruct)
+	v := viper.New()
+
+	err := config.BindConfigToFlags(v, &cobra.Command{}, &testStruct)
 	assert.NoError(t, err)
 
-	err = v.Unmarshal(&testStruct)
+}
+
+func TestNewDefaultConfig(t *testing.T) {
+	v, err := config.NewDefaultConfig(&cobra.Command{})
 	assert.NoError(t, err)
 
+	v.Unmarshal(&config.CommonServiceConfig{})
+	assert.NoError(t, err)
 }

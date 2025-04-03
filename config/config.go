@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/openmfp/golang-commons/context/keys"
+	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -125,19 +126,27 @@ func traverseStruct(value reflect.Value, flagSet *pflag.FlagSet, prefix string) 
 	}
 }
 
-func NewConfigFor(serviceConfig any) (*viper.Viper, error) {
+func NewDefaultConfig(rootCmd *cobra.Command) (*viper.Viper, error) {
 	v := viper.NewWithOptions(
 		viper.EnvKeyReplacer(strings.NewReplacer("-", "_")),
 	)
 
 	v.AutomaticEnv()
 
-	err := v.BindPFlags(generateFlagSet(serviceConfig))
-	if err != nil {
-		return nil, err
-	}
-
-	err = v.BindPFlags(CommonFlags())
+	err := v.BindPFlags(CommonFlags())
+	rootCmd.PersistentFlags().AddFlagSet(CommonFlags())
 
 	return v, err
+}
+
+func BindConfigToFlags(v *viper.Viper, cmd *cobra.Command, config any) error {
+	flagSet := generateFlagSet(config)
+	err := v.BindPFlags(flagSet)
+	if err != nil {
+		return err
+	}
+
+	cmd.Flags().AddFlagSet(flagSet)
+
+	return nil
 }
