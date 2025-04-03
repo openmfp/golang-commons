@@ -43,7 +43,7 @@ type CommonServiceConfig struct {
 	HealthProbeBindAddress string        `mapstructure:"health-probe-bind-address"`
 
 	LeaderElection struct {
-		Enabled bool `mapstructure:"leader-election-enabled"`
+		Enabled bool `mapstructure:"leader-elect"`
 	} `mapstructure:",squash"`
 
 	Sentry struct {
@@ -65,7 +65,7 @@ func CommonFlags() *pflag.FlagSet {
 	flagSet.Duration("shutdown-timeout", 1*time.Minute, "Set the shutdown timeout")
 	flagSet.String("metric-bind-address", ":8080", "Set the metrics bind address")
 	flagSet.String("health-probe-bind-address", ":8090", "Set the health probe bind address")
-	flagSet.Bool("leader-election-enabled", false, "Enable leader election")
+	flagSet.Bool("leader-elect", false, "Enable leader election")
 	flagSet.String("sentry-dsn", "", "Set the Sentry DSN")
 
 	return flagSet
