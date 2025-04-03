@@ -126,17 +126,22 @@ func traverseStruct(value reflect.Value, flagSet *pflag.FlagSet, prefix string) 
 	}
 }
 
-func NewDefaultConfig(rootCmd *cobra.Command) (*viper.Viper, error) {
+func NewDefaultConfig(rootCmd *cobra.Command) (*viper.Viper, *CommonServiceConfig, error) {
 	v := viper.NewWithOptions(
 		viper.EnvKeyReplacer(strings.NewReplacer("-", "_")),
 	)
 
 	v.AutomaticEnv()
 
-	err := v.BindPFlags(CommonFlags())
-	rootCmd.PersistentFlags().AddFlagSet(CommonFlags())
+	flagSet := CommonFlags()
 
-	return v, err
+	err := v.BindPFlags(flagSet)
+	rootCmd.PersistentFlags().AddFlagSet(flagSet)
+
+	var cfg CommonServiceConfig
+	cobra.OnInitialize(unmarshalIntoStruct(v, &cfg))
+
+	return v, &cfg, err
 }
 
 func BindConfigToFlags(v *viper.Viper, cmd *cobra.Command, config any) error {
@@ -148,5 +153,15 @@ func BindConfigToFlags(v *viper.Viper, cmd *cobra.Command, config any) error {
 
 	cmd.Flags().AddFlagSet(flagSet)
 
+	cobra.OnInitialize(unmarshalIntoStruct(v, config))
+
 	return nil
+}
+
+func unmarshalIntoStruct(v *viper.Viper, cfg any) func() {
+	return func() {
+		if err := v.Unmarshal(cfg); err != nil {
+			panic(fmt.Errorf("failed to unmarshal config: %w", err))
+		}
+	}
 }

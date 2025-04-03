@@ -45,7 +45,7 @@ func TestBindConfigToFlags(t *testing.T) {
 }
 
 func TestNewDefaultConfig(t *testing.T) {
-	v, err := config.NewDefaultConfig(&cobra.Command{})
+	v, _, err := config.NewDefaultConfig(&cobra.Command{})
 	assert.NoError(t, err)
 
 	err = v.Unmarshal(&config.CommonServiceConfig{})
