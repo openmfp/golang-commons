@@ -44,9 +44,8 @@ type CommonServiceConfig struct {
 	Metrics         struct {
 		BindAddress string `mapstructure:"metrics-bind-address"`
 		Secure      bool   `mapstructure:"metrics-secure"`
-		EnableHTTP2 bool   `mapstructure:"metrics-enable-http2"`
 	} `mapstructure:",squash"`
-
+	EnableHTTP2            bool   `mapstructure:"enable-http2"`
 	HealthProbeBindAddress string `mapstructure:"health-probe-bind-address"`
 
 	LeaderElection struct {
@@ -73,7 +72,7 @@ func CommonFlags() *pflag.FlagSet {
 	flagSet.Duration("shutdown-timeout", 1*time.Minute, "Set the shutdown timeout")
 	flagSet.String("metrics-bind-address", ":8080", "Set the metrics bind address")
 	flagSet.Bool("metrics-secure", false, "Set if metrics should be exposed via https")
-	flagSet.Bool("metrics-enable-http2", true, "Toggle to disable metrics serving using http2")
+	flagSet.Bool("enable-http2", true, "Toggle to disable metrics/webhook serving using http2")
 	flagSet.String("health-probe-bind-address", ":8090", "Set the health probe bind address")
 	flagSet.Bool("leader-elect", false, "Enable leader election")
 	flagSet.String("sentry-dsn", "", "Set the Sentry DSN")
