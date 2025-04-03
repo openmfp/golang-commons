@@ -48,6 +48,6 @@ func TestNewDefaultConfig(t *testing.T) {
 	v, err := config.NewDefaultConfig(&cobra.Command{})
 	assert.NoError(t, err)
 
-	v.Unmarshal(&config.CommonServiceConfig{})
+	err = v.Unmarshal(&config.CommonServiceConfig{})
 	assert.NoError(t, err)
 }
