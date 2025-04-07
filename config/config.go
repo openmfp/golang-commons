@@ -60,6 +60,7 @@ type CommonServiceConfig struct {
 func CommonFlags() *pflag.FlagSet {
 	flagSet := pflag.NewFlagSet("common", pflag.ContinueOnError)
 
+	flagSet.String("kubeconfig", "", "Set the kubeconfig path")
 	flagSet.String("debug-label-value", "", "Set the debug label value")
 	flagSet.Int("max-concurrent-reconciles", 1, "Set the max concurrent reconciles")
 	flagSet.String("environment", "local", "Set the environment")
