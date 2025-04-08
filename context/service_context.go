@@ -87,3 +87,21 @@ func GetIsTechnicalIssuerFromContext(ctx context.Context) bool {
 
 	return isTechnicalIsser
 }
+
+func AddUserIDToContext(ctx context.Context, userID string) context.Context {
+	return context.WithValue(ctx, keys.UserIDCtxKey, userID)
+}
+
+func GetUserIDFromContext(ctx context.Context) (string, error) {
+	userID, ok := ctx.Value(keys.UserIDCtxKey).(string)
+	if !ok {
+		return userID, fmt.Errorf("someone stored a wrong value in the [%s] key with type [%T], expected [string]", keys.UserIDCtxKey, ctx.Value(keys.UserIDCtxKey))
+	}
+	return userID, nil
+}
+
+func HasUserIDInContext(ctx context.Context) bool {
+	_, ok := ctx.Value(keys.UserIDCtxKey).(string)
+	return ok
+}
+

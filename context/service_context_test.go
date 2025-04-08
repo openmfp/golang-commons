@@ -2,6 +2,7 @@ package context_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/go-jose/go-jose/v4"
@@ -196,3 +197,39 @@ func TestHasTenantInContextNegative(t *testing.T) {
 	hasTenant := openmfpctx.HasTenantInContext(ctx)
 	assert.False(t, hasTenant)
 }
+
+func TestAddUserIDToContextAndGetUserIDFromContext(t *testing.T) {
+	baseCtx := context.Background()
+	userID := "testUser123"
+
+	ctxWithUserID := openmfpctx.AddUserIDToContext(baseCtx, userID)
+
+	retrievedUserID, err := openmfpctx.GetUserIDFromContext(ctxWithUserID)
+	assert.NoError(t, err, "Expected no error when retrieving userID")
+	assert.Equal(t, userID, retrievedUserID, "Retrieved userID should match the added value")
+}
+
+func TestGetUserIDFromContextWrongType(t *testing.T) {
+	baseCtx := context.Background()
+
+	ctxWithWrongType := context.WithValue(baseCtx, keys.UserIDCtxKey, 123)
+
+	retrievedUserID, err := openmfpctx.GetUserIDFromContext(ctxWithWrongType)
+	assert.Error(t, err, "Expected an error when retrieving userID with the wrong type")
+	expectedErrorMsg := fmt.Sprintf("someone stored a wrong value in the [%s] key with type [%T], expected [string]", keys.UserIDCtxKey, ctxWithWrongType.Value(keys.UserIDCtxKey))
+	assert.Equal(t, expectedErrorMsg, err.Error(), "Error message should match the expected message")
+	assert.Equal(t, "", retrievedUserID, "Retrieved userID should be an empty string when an error occurs")
+}
+
+func TestHasUserIDInContext(t *testing.T) {
+	baseCtx := context.Background()
+
+	assert.False(t, openmfpctx.HasUserIDInContext(baseCtx), "Expected false when userID is not set in context")
+
+	ctxWithUserID := openmfpctx.AddUserIDToContext(baseCtx, "user123")
+	assert.True(t, openmfpctx.HasUserIDInContext(ctxWithUserID), "Expected true when a valid userID is set in context")
+
+	ctxWithWrongType := context.WithValue(baseCtx, keys.UserIDCtxKey, 456)
+	assert.False(t, openmfpctx.HasUserIDInContext(ctxWithWrongType), "Expected false when the value stored is of the wrong type")
+}
+

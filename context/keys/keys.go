@@ -15,4 +15,5 @@ const (
 	TenantIdCtxKey       = ContextKey(jwt.TenantIdCtxKey)
 	AuthHeaderCtxKey     = ContextKey(jwt.AuthHeaderCtxKey)
 	WebTokenCtxKey       = ContextKey(jwt.WebTokenCtxKey)
+	UserIDCtxKey         = ContextKey("userId")
 )
