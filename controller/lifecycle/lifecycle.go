@@ -333,7 +333,7 @@ func (l *LifecycleManager) reconcileSubroutine(ctx context.Context, instance Run
 			subroutineLogger.Debug().Msg("finalizing instance")
 			result, err = subroutine.Finalize(ctx, instance)
 			subroutineLogger.Debug().Any("result", result).Msg("finalized instance")
-			if err == nil && !result.Requeue && result.RequeueAfter == 0 {
+			if err == nil {
 				// Remove finalizers unless requeue is requested
 				err = l.removeFinalizerIfNeeded(ctx, instance, subroutine, result)
 			}
