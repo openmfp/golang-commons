@@ -2,11 +2,12 @@ package client
 
 import (
 	"context"
+	"testing"
+
 	"github.com/jellydator/ttlcache/v3"
 	openfgav1 "github.com/openfga/api/proto/openfga/v1"
-	"github.com/openmfp/golang-commons/fga/client/mocks"
+	"github.com/openmfp/golang-commons/directive/mocks"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestOpenFGAClient_Exists(t *testing.T) {
