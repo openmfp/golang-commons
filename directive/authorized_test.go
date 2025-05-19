@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/openmfp/golang-commons/sentry"
 	"testing"
 
 	"github.com/99designs/gqlgen/graphql"
@@ -239,7 +240,7 @@ func TestAuthorized(t *testing.T) {
 			ctx = openmfpcontext.AddAuthHeaderToContext(ctx, fmt.Sprintf("Bearer %s", token))
 
 			_, err := Authorized(openfgaMock, log.Logger)(ctx, nil, nextFn, test.relation, test.entityType, test.entityTypeParamName, test.entityParamName)
-			assert.Equal(t, test.expectedError, err)
+			assert.Equal(t, sentry.SentryError(test.expectedError), err)
 		})
 	}
 }

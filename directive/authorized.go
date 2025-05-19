@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/openmfp/golang-commons/sentry"
 	"strings"
 
 	"github.com/99designs/gqlgen/graphql"
@@ -55,102 +56,114 @@ func extractNestedKeyFromArgs(args map[string]any, paramName string) (string, er
 }
 
 func Authorized(openfgaClient openfgav1.OpenFGAServiceClient, log *logger.Logger) func(context.Context, interface{}, graphql.Resolver, string, *string, *string, string) (interface{}, error) {
+	compLogger := log.ComponentLogger("authorizedDirective")
+
 	if !directiveConfiguration.DirectivesAuthorizationEnabled {
+		log.Trace().Msg("Authorization directive is disabled. Skipping authorization check.")
 		return func(ctx context.Context, obj interface{}, next graphql.Resolver, relation string, entityType *string, entityTypeParamName *string, entityParamName string) (interface{}, error) {
 			return next(ctx)
 		}
 	}
 
 	return func(ctx context.Context, obj interface{}, next graphql.Resolver, relation string, entityType *string, entityTypeParamName *string, entityParamName string) (interface{}, error) {
-
-		if openfgaClient == nil {
-			return nil, errors.New("OpenFGAServiceClient is nil. Cannot process request")
-		}
-
-		ctx, err := setTenantToContextForTechnicalUsers(ctx, log)
+		check, err := executeTheAuthCheck(ctx, openfgaClient, compLogger, entityParamName, entityTypeParamName, entityType, relation, next)
 		if err != nil {
-			return nil, err
+			compLogger.Error().Err(err).Msg("error in authorized directive")
+			return check, sentry.SentryError(err)
 		}
 
-		token, err := openmfpcontext.GetAuthHeaderFromContext(ctx)
-		hasToken := err == nil
-
-		if hasToken {
-			ctx = metadata.AppendToOutgoingContext(ctx, "authorization", token)
-		}
-
-		fctx := graphql.GetFieldContext(ctx)
-
-		entityID, err := extractNestedKeyFromArgs(fctx.Args, entityParamName)
-		if err != nil {
-			return nil, err
-		}
-
-		tenantID, err := openmfpcontext.GetTenantFromContext(ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		evaluatedEntityType := ""
-		if entityTypeParamName != nil {
-			evaluatedEntityType, err = extractNestedKeyFromArgs(fctx.Args, *entityTypeParamName)
-			if err != nil {
-				return nil, err
-			}
-		} else if entityType != nil {
-			evaluatedEntityType = *entityType
-		}
-
-		if evaluatedEntityType == "" {
-			return nil, fmt.Errorf("make sure to either provide entityType or entityTypeParamName")
-		}
-
-		storeID, err := helpers.GetStoreIDForTenant(ctx, openfgaClient, tenantID)
-		if err != nil {
-			return nil, err
-		}
-		modelID, err := helpers.GetModelIDForTenant(ctx, openfgaClient, tenantID)
-		if err != nil {
-			return nil, err
-		}
-
-		var userID string
-		if hasToken {
-			user, err := openmfpcontext.GetWebTokenFromContext(ctx)
-			if err != nil {
-				return nil, err
-			}
-			userID = user.Subject
-		} else {
-			spiffe, err := openmfpcontext.GetSpiffeFromContext(ctx)
-			if err != nil {
-				return nil, fmt.Errorf("authorized was invoked without a user token or a spiffe header")
-			}
-			userID = strings.TrimPrefix(spiffe, "spiffe://")
-			log.Trace().Str("user", userID).Msg("using spiffe user in authorized directive")
-		}
-
-		req := &openfgav1.CheckRequest{
-			StoreId:              storeID,
-			AuthorizationModelId: modelID,
-			TupleKey: &openfgav1.CheckRequestTupleKey{
-				User:     fmt.Sprintf("user:%s", helpers.SanitizeUserID(userID)),
-				Relation: relation,
-				Object:   fmt.Sprintf("%s:%s", evaluatedEntityType, entityID),
-			},
-		}
-
-		res, err := openfgaClient.Check(ctx, req)
-		if err != nil {
-			log.Error().Err(err).Str("user", req.TupleKey.User).Msg("authorization check failed")
-			return nil, err
-		}
-
-		if !res.Allowed {
-			log.Warn().Bool("allowed", res.Allowed).Any("req", req).Msg("not allowed")
-			return nil, gqlerror.Errorf("unauthorized")
-		}
-
-		return next(ctx)
+		return check, err
 	}
+}
+
+func executeTheAuthCheck(ctx context.Context, openfgaClient openfgav1.OpenFGAServiceClient, log *logger.Logger, entityParamName string, entityTypeParamName *string, entityType *string, relation string, next graphql.Resolver) (interface{}, error) {
+	if openfgaClient == nil {
+		return nil, errors.New("OpenFGAServiceClient is nil. Cannot process request")
+	}
+
+	ctx, err := setTenantToContextForTechnicalUsers(ctx, log)
+	if err != nil {
+		return nil, err
+	}
+
+	token, err := openmfpcontext.GetAuthHeaderFromContext(ctx)
+	hasToken := err == nil
+
+	if hasToken {
+		ctx = metadata.AppendToOutgoingContext(ctx, "authorization", token)
+	}
+
+	fctx := graphql.GetFieldContext(ctx)
+
+	entityID, err := extractNestedKeyFromArgs(fctx.Args, entityParamName)
+	if err != nil {
+		return nil, err
+	}
+
+	tenantID, err := openmfpcontext.GetTenantFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	evaluatedEntityType := ""
+	if entityTypeParamName != nil {
+		evaluatedEntityType, err = extractNestedKeyFromArgs(fctx.Args, *entityTypeParamName)
+		if err != nil {
+			return nil, err
+		}
+	} else if entityType != nil {
+		evaluatedEntityType = *entityType
+	}
+
+	if evaluatedEntityType == "" {
+		return nil, fmt.Errorf("make sure to either provide entityType or entityTypeParamName")
+	}
+
+	storeID, err := helpers.GetStoreIDForTenant(ctx, openfgaClient, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	modelID, err := helpers.GetModelIDForTenant(ctx, openfgaClient, tenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	var userID string
+	if hasToken {
+		user, err := openmfpcontext.GetWebTokenFromContext(ctx)
+		if err != nil {
+			return nil, err
+		}
+		userID = user.Subject
+	} else {
+		spiffe, err := openmfpcontext.GetSpiffeFromContext(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("authorized was invoked without a user token or a spiffe header")
+		}
+		userID = strings.TrimPrefix(spiffe, "spiffe://")
+		log.Trace().Str("user", userID).Msg("using spiffe user in authorized directive")
+	}
+
+	req := &openfgav1.CheckRequest{
+		StoreId:              storeID,
+		AuthorizationModelId: modelID,
+		TupleKey: &openfgav1.CheckRequestTupleKey{
+			User:     fmt.Sprintf("user:%s", helpers.SanitizeUserID(userID)),
+			Relation: relation,
+			Object:   fmt.Sprintf("%s:%s", evaluatedEntityType, entityID),
+		},
+	}
+
+	res, err := openfgaClient.Check(ctx, req)
+	if err != nil {
+		log.Error().Err(err).Str("user", req.TupleKey.User).Msg("authorization check failed")
+		return nil, err
+	}
+
+	if !res.Allowed {
+		log.Warn().Bool("allowed", res.Allowed).Any("req", req).Msg("not allowed")
+		return nil, gqlerror.Errorf("unauthorized")
+	}
+
+	return next(ctx)
 }
