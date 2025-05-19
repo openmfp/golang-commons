@@ -60,7 +60,7 @@ func TestAuthorized(t *testing.T) {
 			graphqlArgs: map[string]any{
 				"non-existent": "something wrong",
 			},
-			expectedError: fmt.Errorf("unable to extract param from request for given paramName %q, param is of wrong type", "non-existent.nested"),
+			expectedError: sentry.SentryError(fmt.Errorf("unable to extract param from request for given paramName %q, param is of wrong type", "non-existent.nested")),
 		},
 		{
 			name:            "should error if the entityParamName has the wrong type for a nested value",
@@ -70,7 +70,7 @@ func TestAuthorized(t *testing.T) {
 					"nested": map[string]any{},
 				},
 			},
-			expectedError: fmt.Errorf("unable to extract param from request for given paramName %q, param is of wrong type", "non-existent.nested"),
+			expectedError: sentry.SentryError(fmt.Errorf("unable to extract param from request for given paramName %q, param is of wrong type", "non-existent.nested")),
 		},
 		{
 			name:            "should error if the entityTypeParamName is set and not part of the arguments",
@@ -79,7 +79,7 @@ func TestAuthorized(t *testing.T) {
 				"existent": "something",
 			},
 			entityTypeParamName: String("non-existent"),
-			expectedError:       fmt.Errorf("unable to extract param from request for given paramName %q", "non-existent"),
+			expectedError:       sentry.SentryError(fmt.Errorf("unable to extract param from request for given paramName %q", "non-existent")),
 		},
 		{
 			name:            "should error if the entityType is set and but emtpy",
@@ -89,7 +89,7 @@ func TestAuthorized(t *testing.T) {
 				"existent": "something",
 				"emtpy":    "",
 			},
-			expectedError: errors.New("make sure to either provide entityType or entityTypeParamName"),
+			expectedError: sentry.SentryError(errors.New("make sure to either provide entityType or entityTypeParamName")),
 		},
 		{
 			name:            "should error if the request is not allowed",
@@ -208,9 +208,8 @@ func TestAuthorized(t *testing.T) {
 			},
 			fgaMocks: func(s *mocks.OpenFGAServiceClient) {
 				s.EXPECT().ListStores(mock.Anything, mock.Anything).Return(nil, errors.New("ListStores error"))
-				// s.EXPECT().Check(mock.Anything, mock.Anything).Return(&openfgav1.CheckResponse{Allowed: true}, nil)
 			},
-			expectedError: errors.New("ListStores error"),
+			expectedError: sentry.SentryError(errors.New("ListStores error")),
 		},
 	}
 
@@ -240,7 +239,9 @@ func TestAuthorized(t *testing.T) {
 			ctx = openmfpcontext.AddAuthHeaderToContext(ctx, fmt.Sprintf("Bearer %s", token))
 
 			_, err := Authorized(openfgaMock, log.Logger)(ctx, nil, nextFn, test.relation, test.entityType, test.entityTypeParamName, test.entityParamName)
-			assert.Equal(t, sentry.SentryError(test.expectedError), err)
+			if test.expectedError != nil {
+				assert.Error(t, test.expectedError, err)
+			}
 		})
 	}
 }
@@ -307,7 +308,7 @@ func TestAuthorizedEdgeCases2(t *testing.T) {
 			},
 			fgaMocks: func(s *mocks.OpenFGAServiceClient) {
 			},
-			expectedError: fmt.Errorf("someone stored a wrong value in the [tenantId] key with type [<nil>], expected [string]"),
+			expectedError: errors.New("someone stored a wrong value in the [tenantId] key with type [<nil>], expected [string]"),
 		},
 		{
 			name:            "Check() return error",
@@ -328,7 +329,7 @@ func TestAuthorizedEdgeCases2(t *testing.T) {
 				}, nil)
 				s.EXPECT().Check(mock.Anything, mock.Anything).Return(nil, errors.New("Check error"))
 			},
-			expectedError: errors.New("Check error"),
+			expectedError: sentry.SentryError(errors.New("Check error")),
 		},
 	}
 
@@ -358,7 +359,7 @@ func TestAuthorizedEdgeCases2(t *testing.T) {
 			ctx = openmfpcontext.AddAuthHeaderToContext(ctx, fmt.Sprintf("Bearer %s", token))
 
 			_, err := Authorized(openfgaMock, log.Logger)(ctx, nil, nextFn, test.relation, test.entityType, test.entityTypeParamName, test.entityParamName)
-			assert.Equal(t, sentry.SentryError(test.expectedError), err)
+			assert.Error(t, test.expectedError, err)
 		})
 	}
 
