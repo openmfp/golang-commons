@@ -5,9 +5,11 @@ import (
 	"testing"
 
 	"github.com/99designs/gqlgen/graphql"
+	"github.com/stretchr/testify/assert"
+	"k8s.io/utils/ptr"
+
 	openmfpcontext "github.com/openmfp/golang-commons/context"
 	"github.com/openmfp/golang-commons/logger"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestSetTenantToContextForTechnicalUsers(t *testing.T) {
@@ -50,6 +52,15 @@ func TestSetTenantToContextForTechnicalUsers(t *testing.T) {
 			ctx:  openmfpcontext.AddSpiffeToContext(context.Background(), "spiffee123"),
 			args: map[string]interface{}{
 				"tenantId": "tenant123",
+			},
+			expectedTenant: "tenant123",
+			expectError:    false,
+		},
+		{
+			name: "Non-technical user with spiffee (*string)",
+			ctx:  openmfpcontext.AddIsTechnicalIssuerToContext(context.Background()),
+			args: map[string]interface{}{
+				"tenantId": ptr.To("tenant123"),
 			},
 			expectedTenant: "tenant123",
 			expectError:    false,
