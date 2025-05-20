@@ -1,8 +1,6 @@
 exclude:
   paths:
-    - ^controller/lifecycle/mocks # exclude generated mock files
     - ^controller/testSupport	# exclude test support files
     - mocks	# exclude generated mock files
     - ^test/openfga
-    - directive/mocks
  

@@ -1,26 +1,29 @@
-with-expecter: true
+template: testify
 packages:
-  github.com/openmfp/golang-commons/fga/store:
-    config:
-      dir: fga/store/mocks
-      outpkg: mocks
-    interfaces:
-      FGAStoreHelper:
-        config:
-          mockname: FGAStoreHelper
-  github.com/openmfp/golang-commons/policy_services:
-    config:
-      dir: fga/policy_services/mocks
-      outpkg: mocks
-    interfaces:
-      TenantIdReader:
-        config:
-          mockname: TenantIdReader
   github.com/openfga/api/proto/openfga/v1:
     config:
       dir: directive/mocks
-      outpkg: mocks
+      pkgname: mocks
+      filename: mock_OpenFGAServiceClient.go
     interfaces:
       OpenFGAServiceClient:
         config:
-          mockname: OpenFGAServiceClient
+          structname: OpenFGAServiceClient
+  github.com/openmfp/golang-commons/fga/store:
+    config:
+      dir: fga/store/mocks
+      pkgname: mocks
+      filename: mock_FGAStoreHelper.go
+    interfaces:
+      FGAStoreHelper:
+        config:
+          structname: FGAStoreHelper
+  github.com/openmfp/golang-commons/policy_services:
+    config:
+      dir: fga/policy_services/mocks
+      pkgname: mocks
+      filename: mock_TenantIdReader.go
+    interfaces:
+      TenantIdReader:
+        config:
+          structname: TenantIdReader
