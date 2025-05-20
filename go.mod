@@ -1,8 +1,6 @@
 module github.com/openmfp/golang-commons
 
-go 1.24.2
-
-toolchain go1.24.3
+go 1.24.3
 
 require (
 	github.com/99designs/gqlgen v0.17.73
