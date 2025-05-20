@@ -1,5 +1,12 @@
 name: ci
-on: [push]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types:
+      - opened
+      - synchronize
 
 jobs:
   pipe:
@@ -10,5 +17,4 @@ jobs:
     secrets: inherit
     with:
       useLocalCoverageConfig: true
-      versionPrefix: v
 

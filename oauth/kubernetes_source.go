@@ -98,7 +98,12 @@ func (k *kubernetesTokenSource) Token() (*oauth2.Token, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer res.Body.Close()
+
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			fmt.Printf("error closing response body: %v\n", err)
+		}
+	}()
 
 	var token authenticationv1.TokenRequest
 	err = json.NewDecoder(res.Body).Decode(&token)

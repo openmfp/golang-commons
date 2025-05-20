@@ -21,7 +21,7 @@ func (c *signalCtx) stop() {
 	signal.Stop(c.ch)
 }
 
-var ShutdownError = errors.New("shutdown")
+var ErrShutdown = errors.New("shutdown")
 
 // NotifyShutdownContext returns a copy of the parent context that is marked done
 // (its Done channel is closed) when one of the expected signals arrives,
@@ -41,7 +41,7 @@ func NotifyShutdownContext(parent context.Context) (ctx context.Context, stop co
 		go func() {
 			select {
 			case <-c.ch:
-				c.cancel(ShutdownError)
+				c.cancel(ErrShutdown)
 			case <-c.Done():
 			}
 		}()

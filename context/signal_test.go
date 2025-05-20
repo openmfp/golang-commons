@@ -29,7 +29,7 @@ func TestNotifyContextSIGINT(t *testing.T) {
 
 	cause := context.Cause(ctx)
 	assert.NotNil(t, cause)
-	assert.True(t, errors.Is(cause, ShutdownError))
+	assert.True(t, errors.Is(cause, ErrShutdown))
 }
 
 func TestNotifyContextSIGTERM(t *testing.T) {
@@ -51,5 +51,5 @@ func TestNotifyContextSIGTERM(t *testing.T) {
 
 	cause := context.Cause(ctx)
 	assert.NotNil(t, cause)
-	assert.True(t, errors.Is(cause, ShutdownError))
+	assert.True(t, errors.Is(cause, ErrShutdown))
 }

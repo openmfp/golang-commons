@@ -85,7 +85,7 @@ func TestLifecycle(t *testing.T) {
 		_, err := mgr.Reconcile(ctx, request, instance)
 
 		assert.NoError(t, err)
-		assert.Equal(t, 1, len(instance.ObjectMeta.Finalizers))
+		assert.Equal(t, 1, len(instance.Finalizers))
 	})
 
 	t.Run("Lifecycle with a finalizer - finalization", func(t *testing.T) {
@@ -113,7 +113,69 @@ func TestLifecycle(t *testing.T) {
 		_, err := mgr.Reconcile(ctx, request, instance)
 
 		assert.NoError(t, err)
-		assert.Equal(t, 0, len(instance.ObjectMeta.Finalizers))
+		assert.Equal(t, 0, len(instance.Finalizers))
+	})
+
+	t.Run("Lifecycle with a finalizer - finalization(requeue)", func(t *testing.T) {
+		// Arrange
+		now := &metav1.Time{Time: time.Now()}
+		finalizers := []string{subroutineFinalizer}
+		instance := &testSupport.TestApiObject{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:              name,
+				Namespace:         namespace,
+				DeletionTimestamp: now,
+				Finalizers:        finalizers,
+			},
+		}
+
+		fakeClient := testSupport.CreateFakeClient(t, instance)
+
+		mgr, _ := createLifecycleManager([]Subroutine{
+			finalizerSubroutine{
+				client:  fakeClient,
+				requeue: true,
+			},
+		}, fakeClient)
+
+		// Act
+		res, err := mgr.Reconcile(ctx, request, instance)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(instance.Finalizers))
+		assert.True(t, res.Requeue)
+		assert.Equal(t, time.Duration(0), res.RequeueAfter)
+	})
+
+	t.Run("Lifecycle with a finalizer - finalization(requeueAfter)", func(t *testing.T) {
+		// Arrange
+		now := &metav1.Time{Time: time.Now()}
+		finalizers := []string{subroutineFinalizer}
+		instance := &testSupport.TestApiObject{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:              name,
+				Namespace:         namespace,
+				DeletionTimestamp: now,
+				Finalizers:        finalizers,
+			},
+		}
+
+		fakeClient := testSupport.CreateFakeClient(t, instance)
+
+		mgr, _ := createLifecycleManager([]Subroutine{
+			finalizerSubroutine{
+				client:       fakeClient,
+				requeueAfter: 2 * time.Second,
+			},
+		}, fakeClient)
+
+		// Act
+		res, err := mgr.Reconcile(ctx, request, instance)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(instance.Finalizers))
+		assert.False(t, res.Requeue)
+		assert.Equal(t, 2*time.Second, res.RequeueAfter)
 	})
 
 	t.Run("Lifecycle with a finalizer - skip finalization if the finalizer is not in there", func(t *testing.T) {
@@ -141,7 +203,7 @@ func TestLifecycle(t *testing.T) {
 		_, err := mgr.Reconcile(ctx, request, instance)
 
 		assert.NoError(t, err)
-		assert.Equal(t, 1, len(instance.ObjectMeta.Finalizers))
+		assert.Equal(t, 1, len(instance.Finalizers))
 	})
 	t.Run("Lifecycle with a finalizer - failing finalization subroutine", func(t *testing.T) {
 		// Arrange
@@ -169,7 +231,7 @@ func TestLifecycle(t *testing.T) {
 		_, err := mgr.Reconcile(ctx, request, instance)
 
 		assert.Error(t, err)
-		assert.Equal(t, 1, len(instance.ObjectMeta.Finalizers))
+		assert.Equal(t, 1, len(instance.Finalizers))
 	})
 
 	t.Run("Lifecycle without changing status", func(t *testing.T) {

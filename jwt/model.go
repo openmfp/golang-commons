@@ -36,7 +36,7 @@ type WebToken struct {
 func New(idToken string, signatureAlgorithms []jose.SignatureAlgorithm) (webToken WebToken, err error) {
 	token, parseErr := jwt.ParseSigned(idToken, signatureAlgorithms)
 	if parseErr != nil {
-		err = fmt.Errorf("unable to parse id_token: [%s], %w", idToken, err)
+		err = fmt.Errorf("unable to parse id_token: [%s], %w", idToken, parseErr)
 		return
 	}
 
