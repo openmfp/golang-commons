@@ -65,6 +65,15 @@ func TestSetTenantToContextForTechnicalUsers(t *testing.T) {
 			expectedTenant: "tenant123",
 			expectError:    false,
 		},
+		{
+			name: "Non-technical user with spiffee (*string empty)",
+			ctx:  openmfpcontext.AddIsTechnicalIssuerToContext(context.Background()),
+			args: map[string]interface{}{
+				"tenantId": ptr.To(""),
+			},
+			expectedTenant: "",
+			expectError:    false,
+		},
 	}
 
 	for _, tt := range tests {
