@@ -1,6 +1,6 @@
 module github.com/openmfp/golang-commons
 
-go 1.23.2
+go 1.24
 
 require (
 	github.com/99designs/gqlgen v0.17.73
@@ -104,7 +104,6 @@ require (
 	go.uber.org/mock v0.5.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
-	golang.org/x/crypto v0.37.0 // indirect
 	golang.org/x/net v0.39.0 // indirect
 	golang.org/x/sync v0.14.0 // indirect
 	golang.org/x/sys v0.32.0 // indirect
