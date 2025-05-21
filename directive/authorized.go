@@ -75,7 +75,13 @@ func Authorized(openfgaClient openfgav1.OpenFGAServiceClient, log *logger.Logger
 			return nil, sentry.SentryError(openmfperrors.New("OpenFGAServiceClient is nil. Cannot process request"))
 		}
 
-		ctx, hasToken, entityID, tenantID, evaluatedEntityType, err := ac.extractValuesToCheckFromRequest(ctx, entityParamName, entityTypeParamName, entityType)
+		ctx, hasToken, err := ac.withTenantContextForTechnicalUsers(ctx)
+		if err != nil {
+			compLogger.Info().Err(err).Msg("error setting tenant context for technical users")
+			return nil, err
+		}
+
+		entityID, tenantID, evaluatedEntityType, err := ac.prepareAuthCheckInputs(ctx, entityParamName, entityTypeParamName, entityType)
 		if err != nil {
 			compLogger.Info().Err(err).Msg("error when extracting values for auth check")
 			return nil, err
@@ -141,46 +147,66 @@ func (ac *authChecker) executeTheAuthCheck(ctx context.Context, hasToken bool, e
 	if err != nil {
 		return nil, err
 	}
+	if res == nil {
+		return nil, openmfperrors.New("received nil response from openfgaClient.Check with no error")
+	}
 	return res, nil
 }
 
-func (ac *authChecker) extractValuesToCheckFromRequest(ctx context.Context, entityParamName string, entityTypeParamName *string, entityType *string) (context.Context, bool, string, string, string, error) {
-	ctx, err := setTenantToContextForTechnicalUsers(ctx, ac.log)
+func (ac *authChecker) withTenantContextForTechnicalUsers(ctx context.Context) (context.Context, bool, error) {
+	newCtx, err := setTenantToContextForTechnicalUsers(ctx, ac.log)
 	if err != nil {
-		return nil, false, "", "", "", openmfperrors.EnsureStack(err)
+		return ctx, false, openmfperrors.EnsureStack(err)
 	}
 
-	token, err := openmfpcontext.GetAuthHeaderFromContext(ctx)
+	token, err := openmfpcontext.GetAuthHeaderFromContext(newCtx)
 	hasToken := err == nil
 
 	if hasToken {
-		ctx = metadata.AppendToOutgoingContext(ctx, "authorization", token)
+		newCtx = metadata.AppendToOutgoingContext(newCtx, "authorization", token)
 	}
 
+	return newCtx, hasToken, nil
+}
+
+func (ac *authChecker) prepareAuthCheckInputs(
+	ctx context.Context,
+	entityParamName string,
+	entityTypeParamName *string,
+	entityType *string,
+) (
+	entityID string,
+	tenantID string,
+	evaluatedEntityType string,
+	err error,
+) {
 	fctx := graphql.GetFieldContext(ctx)
 
-	entityID, err := extractNestedKeyFromArgs(fctx.Args, entityParamName)
+	entityID, err = extractNestedKeyFromArgs(fctx.Args, entityParamName)
 	if err != nil {
-		return nil, false, "", "", "", openmfperrors.EnsureStack(err)
+		err = openmfperrors.EnsureStack(err)
+		return
 	}
 
-	tenantID, err := openmfpcontext.GetTenantFromContext(ctx)
+	tenantID, err = openmfpcontext.GetTenantFromContext(ctx)
 	if err != nil {
-		return nil, false, "", "", "", openmfperrors.EnsureStack(err)
+		err = openmfperrors.EnsureStack(err)
+		return
 	}
 
-	evaluatedEntityType := ""
 	if entityTypeParamName != nil {
 		evaluatedEntityType, err = extractNestedKeyFromArgs(fctx.Args, *entityTypeParamName)
 		if err != nil {
-			return nil, false, "", "", "", openmfperrors.EnsureStack(err)
+			err = openmfperrors.EnsureStack(err)
+			return
 		}
 	} else if entityType != nil {
 		evaluatedEntityType = *entityType
 	}
 
 	if evaluatedEntityType == "" {
-		return nil, false, "", "", "", openmfperrors.New("make sure to either provide entityType or entityTypeParamName")
+		err = openmfperrors.New("make sure to either provide entityType or entityTypeParamName")
+		return
 	}
-	return ctx, hasToken, entityID, tenantID, evaluatedEntityType, nil
+	return
 }
