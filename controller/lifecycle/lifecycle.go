@@ -366,6 +366,7 @@ func (l *LifecycleManager) addFinalizersIfNeeded(ctx context.Context, instance R
 	}
 
 	update := false
+	original := instance.DeepCopyObject().(client.Object)
 	for _, subroutine := range l.subroutines {
 		if len(subroutine.Finalizers()) > 0 {
 			needsUpdate := l.addFinalizerIfNeeded(instance, subroutine)
@@ -375,7 +376,8 @@ func (l *LifecycleManager) addFinalizersIfNeeded(ctx context.Context, instance R
 		}
 	}
 	if update {
-		err := l.client.Update(ctx, instance)
+		patch := client.MergeFrom(original)
+		err := l.client.Patch(ctx, instance, patch)
 		if err != nil {
 			return err
 		}
@@ -401,6 +403,7 @@ func (l *LifecycleManager) removeFinalizerIfNeeded(ctx context.Context, instance
 
 	if !result.Requeue && result.RequeueAfter == 0 {
 		update := false
+		original := instance.DeepCopyObject().(client.Object)
 		for _, f := range subroutine.Finalizers() {
 			needsUpdate := controllerutil.RemoveFinalizer(instance, f)
 			if needsUpdate {
@@ -408,7 +411,8 @@ func (l *LifecycleManager) removeFinalizerIfNeeded(ctx context.Context, instance
 			}
 		}
 		if update {
-			err := l.client.Update(ctx, instance)
+			patch := client.MergeFrom(original)
+			err := l.client.Patch(ctx, instance, patch)
 			if err != nil {
 				return errors.NewOperatorError(errors.Wrap(err, "failed to update instance"), true, false)
 			}
