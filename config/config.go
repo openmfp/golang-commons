@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/openmfp/golang-commons/context/keys"
+	"github.com/openmfp/golang-commons/traces"
 )
 
 func SetConfigInContext(ctx context.Context, config any) context.Context {
@@ -46,8 +47,8 @@ type CommonServiceConfig struct {
 		Secure      bool   `mapstructure:"metrics-secure"`
 	} `mapstructure:",squash"`
 	Tracing struct {
-		Enabled  bool   `mapstructure:"tracing-enabled"`
-		Endpoint string `mapstructure:"tracing-endpoint"`
+		Enabled   bool          `mapstructure:"tracing-enabled"`
+		Collector traces.Config `mapstructure:",squash"`
 	} `mapstructure:",squash"`
 	EnableHTTP2            bool   `mapstructure:"enable-http2"`
 	HealthProbeBindAddress string `mapstructure:"health-probe-bind-address"`
