@@ -90,6 +90,32 @@ func TestInitProvider_HappyPath(t *testing.T) {
 	}
 }
 
+func TestInitLocalProvider(t *testing.T) {
+	ctx := context.Background()
+	cfg := Config{
+		ServiceName:    "local-service",
+		ServiceVersion: "0.1.0",
+	}
+
+	// Test with exportToConsole = false (should not error)
+	shutdown, err := InitLocalProvider(ctx, cfg, false)
+	if err != nil {
+		t.Fatalf("expected no error with exportToConsole=false, got %v", err)
+	}
+	if shutdown == nil {
+		t.Error("expected shutdown function, got nil")
+	}
+
+	// Test with exportToConsole = true (should not error)
+	shutdown, err = InitLocalProvider(ctx, cfg, true)
+	if err != nil {
+		t.Fatalf("expected no error with exportToConsole=true, got %v", err)
+	}
+	if shutdown == nil {
+		t.Error("expected shutdown function, got nil")
+	}
+}
+
 // dummyTraceServer implements the OTLP TraceServiceServer interface with no-op methods.
 type dummyTraceServer struct {
 	collectortrace.UnimplementedTraceServiceServer
