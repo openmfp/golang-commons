@@ -3,10 +3,13 @@ package traces
 import (
 	"context"
 	"fmt"
+	"io"
+	"os"
 	"time"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdkTrace "go.opentelemetry.io/otel/sdk/trace"
@@ -42,6 +45,25 @@ func InitProvider(ctx context.Context, config Config) (func(ctx context.Context)
 	}
 
 	traceExporter, err := otlptracegrpc.New(connCtx, otlptracegrpc.WithGRPCConn(conn))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create trace exporter: %w", err)
+	}
+
+	return config.initProvider(ctx, traceExporter)
+}
+
+// InitLocalProvider creates an OpenTelemetry provider for the concrete service.
+// If exportToConsole is `true`, the traces will be written in the console for debugging purposes.
+func InitLocalProvider(ctx context.Context, config Config, exportToConsole bool) (func(ctx context.Context) error, error) {
+	fileTarget := io.Discard
+	if exportToConsole {
+		fileTarget = os.Stdout
+	}
+
+	traceExporter, err := stdouttrace.New(
+		stdouttrace.WithWriter(fileTarget),
+		stdouttrace.WithPrettyPrint(),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create trace exporter: %w", err)
 	}
