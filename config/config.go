@@ -45,6 +45,10 @@ type CommonServiceConfig struct {
 		BindAddress string `mapstructure:"metrics-bind-address"`
 		Secure      bool   `mapstructure:"metrics-secure"`
 	} `mapstructure:",squash"`
+	Tracing struct {
+		Enabled  bool   `mapstructure:"tracing-enabled"`
+		Endpoint string `mapstructure:"tracing-endpoint"`
+	} `mapstructure:",squash"`
 	EnableHTTP2            bool   `mapstructure:"enable-http2"`
 	HealthProbeBindAddress string `mapstructure:"health-probe-bind-address"`
 
@@ -73,6 +77,7 @@ func CommonFlags() *pflag.FlagSet {
 	flagSet.Duration("shutdown-timeout", 1*time.Minute, "Set the shutdown timeout")
 	flagSet.String("metrics-bind-address", ":8080", "Set the metrics bind address")
 	flagSet.Bool("metrics-secure", false, "Set if metrics should be exposed via https")
+	flagSet.Bool("tracing-enabled", false, "Enable tracing for the service")
 	flagSet.Bool("enable-http2", true, "Toggle to disable metrics/webhook serving using http2")
 	flagSet.String("health-probe-bind-address", ":8090", "Set the health probe bind address")
 	flagSet.Bool("leader-elect", false, "Enable leader election")
