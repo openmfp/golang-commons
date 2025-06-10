@@ -18,11 +18,8 @@ import (
 func createClient(ctx context.Context, iamApiUrl string) *graphql.Client {
 	log := logger.LoadLoggerFromContext(ctx)
 
-	transport := otelhttp.NewTransport(http.DefaultTransport)
-	httpClient := &http.Client{
-		Transport: transport,
-	}
-	client := graphql.NewClient(iamApiUrl, graphql.WithHTTPClient(httpClient))
+	hc := &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
+	client := graphql.NewClient(iamApiUrl, graphql.WithHTTPClient(hc))
 
 	if log != nil {
 		client.Log = log.ComponentLogger("graphql").Trace().Msg
