@@ -157,11 +157,15 @@ func traverseStruct(value reflect.Value, flagSet *pflag.FlagSet, prefix string) 
 				flagSet.Int(prefix+tag, i, description)
 			}
 		case reflect.Bool:
-			b, err := strconv.ParseBool(defaultStrValue)
-			if err != nil {
-				return err
+			var defaultBoolValue bool
+			if defaultStrValue != "" {
+				b, err := strconv.ParseBool(defaultStrValue)
+				if err != nil {
+					return err
+				}
+				defaultBoolValue = b
 			}
-			flagSet.Bool(prefix+tag, b, description)
+			flagSet.Bool(prefix+tag, defaultBoolValue, description)
 		default:
 			return fmt.Errorf("unsupported field type %s for field %s", fieldValue.Kind(), field.Name)
 		}

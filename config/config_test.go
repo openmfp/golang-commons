@@ -118,6 +118,25 @@ func TestBindConfigToFlagsWrongTypeBool(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestBindConfigToFlagsEmptyDefaultBool(t *testing.T) {
+	type test struct {
+		CustomFlagInt bool `mapstructure:"custom-flag" default:""`
+	}
+
+	testStruct := test{}
+
+	v := viper.New()
+
+	cmd := &cobra.Command{}
+	err := config.BindConfigToFlags(v, cmd, &testStruct) // assuming this binds flags
+	assert.NoError(t, err)
+
+	boolFlag := cmd.Flags().Lookup("custom-flag")
+	assert.NotNil(t, boolFlag)
+	assert.Equal(t, "Set the custom-flag", boolFlag.Usage)
+	assert.Equal(t, "false", boolFlag.DefValue)
+}
+
 func TestBindConfigToFlagsWrongType(t *testing.T) {
 	type test struct {
 		CustomFlagInt byte `mapstructure:"custom-flag" default:"abc"`
