@@ -79,6 +79,8 @@ func CommonFlags() *pflag.FlagSet {
 	flagSet.String("metrics-bind-address", ":8080", "Set the metrics bind address")
 	flagSet.Bool("metrics-secure", false, "Set if metrics should be exposed via https")
 	flagSet.Bool("tracing-enabled", false, "Enable tracing for the service")
+	flagSet.String("tracing-config-service-name", "", "Set the tracing service name")
+	flagSet.String("tracing-config-service-version", "", "Set the tracing service version")
 	flagSet.Bool("enable-http2", true, "Toggle to disable metrics/webhook serving using http2")
 	flagSet.String("health-probe-bind-address", ":8090", "Set the health probe bind address")
 	flagSet.Bool("leader-elect", false, "Enable leader election")
