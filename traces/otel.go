@@ -20,14 +20,14 @@ import (
 
 type Config struct {
 	// ServiceName is the name of the instrumented library/service
-	ServiceName string `mapstructure:"tracing-service-name"`
+	ServiceName string
 	// ServiceVersion is the version of the instrumented library/service
 	// It must be in Semver format `<MAYOR>.<MINOR>.<PATCH>`
-	ServiceVersion string `mapstructure:"tracing-service-version"`
+	ServiceVersion string
 	// Endpoint is the target of the collector.
 	// Must be in the format `<DOMAIN>:<PORT>` without prefixed protocol
 	// Ignored in the case of a LocalProvider
-	Endpoint string `mapstructure:"tracing-endpoint"`
+	Endpoint string
 }
 
 // InitProvider creates an OpenTelemetry provider for the concrete service.
