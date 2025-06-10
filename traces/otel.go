@@ -20,14 +20,14 @@ import (
 
 type Config struct {
 	// ServiceName is the name of the instrumented library/service
-	ServiceName string
+	ServiceName string `mapstructure:"tracing-config-service-name"`
 	// ServiceVersion is the version of the instrumented library/service
 	// It must be in Semver format `<MAYOR>.<MINOR>.<PATCH>`
-	ServiceVersion string
-	// Endpoint is the target of the collector.
+	ServiceVersion string `mapstructure:"tracing-config-service-version"`
+	// CollectorEndpoint is the target of the collector.
 	// Must be in the format `<DOMAIN>:<PORT>` without prefixed protocol
 	// Ignored in the case of a LocalProvider
-	Endpoint string
+	CollectorEndpoint string `mapstructure:"tracing-config-collector-endpoint"`
 }
 
 // InitProvider creates an OpenTelemetry provider for the concrete service.
@@ -36,7 +36,7 @@ func InitProvider(ctx context.Context, config Config) (func(ctx context.Context)
 	connCtx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
 
-	client, err := grpc.NewClient(config.Endpoint,
+	client, err := grpc.NewClient(config.CollectorEndpoint,
 		grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gRPC connection to collector: %w", err)

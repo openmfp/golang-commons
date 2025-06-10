@@ -49,9 +49,9 @@ func TestInitProvider_HappyPath(t *testing.T) {
 
 	ctx := context.Background()
 	cfg := Config{
-		ServiceName:    "happy-service",
-		ServiceVersion: "1.2.3",
-		Endpoint:       lis.Addr().String(),
+		ServiceName:       "happy-service",
+		ServiceVersion:    "1.2.3",
+		CollectorEndpoint: lis.Addr().String(),
 	}
 	shutdown, err := InitProvider(ctx, cfg)
 	if err != nil {
