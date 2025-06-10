@@ -36,15 +36,13 @@ func InitProvider(ctx context.Context, config Config) (func(ctx context.Context)
 	connCtx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
 
-	conn, err := grpc.DialContext(connCtx, config.Endpoint,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
-	)
+	client, err := grpc.NewClient(config.Endpoint,
+		grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gRPC connection to collector: %w", err)
 	}
 
-	traceExporter, err := otlptracegrpc.New(connCtx, otlptracegrpc.WithGRPCConn(conn))
+	traceExporter, err := otlptracegrpc.New(connCtx, otlptracegrpc.WithGRPCConn(client))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create trace exporter: %w", err)
 	}

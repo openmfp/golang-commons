@@ -66,7 +66,12 @@ func TestInitProvider_HappyPath(t *testing.T) {
 	}
 	s := grpc.NewServer()
 	collectortrace.RegisterTraceServiceServer(s, &dummyTraceServer{})
-	go s.Serve(lis)
+	go func() {
+		err := s.Serve(lis)
+		if err != nil {
+			t.Logf("gRPC server exited: %v", err)
+		}
+	}()
 	defer s.Stop()
 
 	ctx := context.Background()
