@@ -76,8 +76,7 @@ func TestBindConfigToFlags(t *testing.T) {
 	assert.Equal(t, "1m0s", durationFlag.DefValue)
 }
 
-func TestBindConfigToFlagsWrongType(t *testing.T) {
-
+func TestBindConfigToFlagsWrongTypeInt(t *testing.T) {
 	type test struct {
 		CustomFlagInt int `mapstructure:"custom-flag-int" default:"abc" description:"This is a custom flag with int value"`
 	}
@@ -89,7 +88,58 @@ func TestBindConfigToFlagsWrongType(t *testing.T) {
 	cmd := &cobra.Command{}
 	err := config.BindConfigToFlags(v, cmd, &testStruct) // assuming this binds flags
 	assert.Error(t, err)
+}
 
+func TestBindConfigToFlagsWrongTypeDuration(t *testing.T) {
+	type test struct {
+		CustomFlagInt time.Duration `mapstructure:"custom-flag" default:"abc"`
+	}
+
+	testStruct := test{}
+
+	v := viper.New()
+
+	cmd := &cobra.Command{}
+	err := config.BindConfigToFlags(v, cmd, &testStruct) // assuming this binds flags
+	assert.Error(t, err)
+}
+
+func TestBindConfigToFlagsWrongTypeBool(t *testing.T) {
+	type test struct {
+		CustomFlagInt bool `mapstructure:"custom-flag" default:"abc"`
+	}
+
+	testStruct := test{}
+
+	v := viper.New()
+
+	cmd := &cobra.Command{}
+	err := config.BindConfigToFlags(v, cmd, &testStruct) // assuming this binds flags
+	assert.Error(t, err)
+}
+
+func TestBindConfigToFlagsWrongType(t *testing.T) {
+	type test struct {
+		CustomFlagInt byte `mapstructure:"custom-flag" default:"abc"`
+	}
+
+	testStruct := test{}
+
+	v := viper.New()
+
+	cmd := &cobra.Command{}
+	err := config.BindConfigToFlags(v, cmd, &testStruct) // assuming this binds flags
+	assert.Error(t, err)
+}
+
+func TestBindConfigToFlagsWrongTypeNoStruct(t *testing.T) {
+	testStruct := ""
+
+	v := viper.New()
+
+	cmd := &cobra.Command{}
+	err := config.BindConfigToFlags(v, cmd, &testStruct) // assuming this binds flags
+	assert.Error(t, err)
 }
 
 func TestNewDefaultConfig(t *testing.T) {
