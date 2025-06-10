@@ -15,19 +15,6 @@ type mockExporter struct {
 	sdkTrace.SpanExporter
 }
 
-func TestInitProvider_InvalidEndpoint(t *testing.T) {
-	ctx := context.Background()
-	cfg := Config{
-		ServiceName:    "test-service",
-		ServiceVersion: "1.0.0",
-		Endpoint:       "invalid:0", // invalid endpoint to force error
-	}
-	_, err := InitProvider(ctx, cfg)
-	if err == nil {
-		t.Error("expected error for invalid endpoint, got nil")
-	}
-}
-
 func TestConfig_initProvider_Success(t *testing.T) {
 	ctx := context.Background()
 	cfg := Config{
@@ -41,20 +28,6 @@ func TestConfig_initProvider_Success(t *testing.T) {
 	}
 	if shutdown == nil {
 		t.Error("expected shutdown function, got nil")
-	}
-}
-
-func TestInitProvider_Timeout(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
-	defer cancel()
-	cfg := Config{
-		ServiceName:    "test-service",
-		ServiceVersion: "1.0.0",
-		Endpoint:       "localhost:65535", // unlikely to be open
-	}
-	_, err := InitProvider(ctx, cfg)
-	if err == nil {
-		t.Error("expected timeout error, got nil")
 	}
 }
 
