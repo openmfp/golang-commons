@@ -30,7 +30,7 @@ func TestBindConfigToFlags(t *testing.T) {
 		CustomFlagBool      bool   `mapstructure:"custom-flag-bool" default:"true" description:"This is a custom flag with bool value"`
 		CustomFlagNoDefault string `mapstructure:"custom-flag-no-default" `
 		CustomFlagStruct    struct {
-			CustomFlagDuration time.Duration `mapstructure:"custom-flag-duration"`
+			CustomFlagDuration time.Duration `mapstructure:"custom-flag-duration" default:"1m" description:"This is a custom flag with duration value"`
 			SubCustomFlag      string        `mapstructure:"sub-custom-flag" default:"subabc" description:"This is a sub custom flag"`
 		} `mapstructure:",squash"`
 		CustomFlagStruct2 struct {
@@ -69,6 +69,11 @@ func TestBindConfigToFlags(t *testing.T) {
 	assert.NotNil(t, boolFlag)
 	assert.Equal(t, "This is a custom flag with bool value", boolFlag.Usage)
 	assert.Equal(t, "true", boolFlag.DefValue)
+
+	durationFlag := cmd.Flags().Lookup("custom-flag-duration")
+	assert.NotNil(t, durationFlag)
+	assert.Equal(t, "This is a custom flag with duration value", durationFlag.Usage)
+	assert.Equal(t, "1m0s", durationFlag.DefValue)
 }
 
 func TestBindConfigToFlagsWrongType(t *testing.T) {

@@ -26,7 +26,7 @@ func LoadConfigFromContext(ctx context.Context) any {
 }
 
 type CommonServiceConfig struct {
-	DebugLabelValue         string `mapstructure:"debug-label-value" default:"" description:"Set the debug label value"`
+	DebugLabelValue         string `mapstructure:"debug-label-value" description:"Set the debug label value"`
 	MaxConcurrentReconciles int    `mapstructure:"max-concurrent-reconciles" default:"10" description:"Set the max concurrent reconciles"`
 	Environment             string `mapstructure:"environment"`
 	Region                  string `mapstructure:"region" default:"local" description:"Set the region of the service, e.g. local, dev, staging, prod"`
@@ -130,22 +130,30 @@ func traverseStruct(value reflect.Value, flagSet *pflag.FlagSet, prefix string) 
 		case reflect.String:
 			flagSet.String(prefix+tag, defaultStrValue, description)
 		case reflect.Int, reflect.Int64:
-			i := 0
-			if defaultStrValue != "" {
-				parsedInt, err := strconv.Atoi(defaultStrValue)
-				if err != nil {
-					return err
-				}
-				i = parsedInt
-			}
 			if fieldValue.Type() == reflect.TypeOf(time.Duration(0)) {
-				durVal := time.Duration(i) * time.Second
+				var durVal time.Duration
+				if defaultStrValue != "" {
+					parsedDurVal, err := time.ParseDuration(defaultStrValue)
+					if err != nil {
+						return fmt.Errorf("invalid duration value for field %s: %w", field.Name, err)
+					}
+					durVal = parsedDurVal
+				}
+
 				durDescription := fmt.Sprintf("Set the %s in seconds", tag)
 				if descriptionStrValue != "" {
 					durDescription = descriptionStrValue
 				}
 				flagSet.Duration(prefix+tag, durVal, durDescription)
 			} else {
+				i := 0
+				if defaultStrValue != "" {
+					parsedInt, err := strconv.Atoi(defaultStrValue)
+					if err != nil {
+						return err
+					}
+					i = parsedInt
+				}
 				flagSet.Int(prefix+tag, i, description)
 			}
 		case reflect.Bool:
