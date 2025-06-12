@@ -199,9 +199,10 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 	}
 
 	if l.spreadReconciles && instance.GetDeletionTimestamp().IsZero() {
+		original := instance.DeepCopyObject().(client.Object)
 		removed := removeRefreshLabelIfExists(instance)
 		if removed {
-			updateErr := l.client.Update(ctx, instance)
+			updateErr := l.client.Patch(ctx, instance, client.MergeFrom(original))
 			if updateErr != nil {
 				return l.handleClientError("failed to update instance", log, err, generationChanged, sentryTags)
 			}
@@ -376,8 +377,7 @@ func (l *LifecycleManager) addFinalizersIfNeeded(ctx context.Context, instance R
 		}
 	}
 	if update {
-		patch := client.MergeFrom(original)
-		err := l.client.Patch(ctx, instance, patch)
+		err := l.client.Patch(ctx, instance, client.MergeFrom(original))
 		if err != nil {
 			return err
 		}
@@ -411,8 +411,7 @@ func (l *LifecycleManager) removeFinalizerIfNeeded(ctx context.Context, instance
 			}
 		}
 		if update {
-			patch := client.MergeFrom(original)
-			err := l.client.Patch(ctx, instance, patch)
+			err := l.client.Patch(ctx, instance, client.MergeFrom(original))
 			if err != nil {
 				return errors.NewOperatorError(errors.Wrap(err, "failed to update instance"), true, false)
 			}
