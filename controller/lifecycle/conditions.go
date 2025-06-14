@@ -98,12 +98,12 @@ func setSubroutineCondition(conditions *[]metav1.Condition, subroutine Subroutin
 	conditionName, conditionMessage := getConditionNameAndMessage(subroutine, isFinalize)
 
 	// processing complete
-	if subroutineErr == nil && !subroutineResult.Requeue && subroutineResult.RequeueAfter == 0 {
+	if subroutineErr == nil && subroutineResult.RequeueAfter == 0 {
 		return meta.SetStatusCondition(conditions,
 			metav1.Condition{Type: conditionName, Status: metav1.ConditionTrue, Message: fmt.Sprintf(subroutineMessageCompleteFormatString, conditionMessage), Reason: reasonComplete})
 	}
 	// processing is still processing
-	if subroutineErr == nil && (subroutineResult.RequeueAfter > 0 || subroutineResult.Requeue) {
+	if subroutineErr == nil && subroutineResult.RequeueAfter > 0 {
 		return meta.SetStatusCondition(conditions,
 			metav1.Condition{Type: conditionName, Status: metav1.ConditionUnknown, Message: fmt.Sprintf(subroutineMessageProcessingFormatString, conditionMessage), Reason: reasonProcessing})
 	}
