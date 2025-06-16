@@ -143,7 +143,6 @@ func TestLifecycle(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(instance.Finalizers))
-		assert.True(t, res.Requeue)
 		assert.Equal(t, time.Duration(0), res.RequeueAfter)
 	})
 
@@ -174,7 +173,6 @@ func TestLifecycle(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(instance.Finalizers))
-		assert.False(t, res.Requeue)
 		assert.Equal(t, 2*time.Second, res.RequeueAfter)
 	})
 

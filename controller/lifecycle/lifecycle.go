@@ -163,22 +163,19 @@ func (l *LifecycleManager) Reconcile(ctx context.Context, req ctrl.Request, inst
 			}
 			return subResult, err
 		}
-		if subResult.Requeue {
-			result.Requeue = subResult.Requeue
-		}
 		if subResult.RequeueAfter > 0 {
 			if subResult.RequeueAfter < result.RequeueAfter || result.RequeueAfter == 0 {
 				result.RequeueAfter = subResult.RequeueAfter
 			}
 		}
 		if l.manageConditions {
-			if !subResult.Requeue && subResult.RequeueAfter == 0 {
+			if subResult.RequeueAfter == 0 {
 				setSubroutineCondition(&conditions, subroutine, subResult, err, inDeletion, log)
 			}
 		}
 	}
 
-	if !result.Requeue && result.RequeueAfter == 0 {
+	if result.RequeueAfter == 0 {
 		// Reconciliation was successful
 		l.markResourceAsFinal(instance, log, conditions, v1.ConditionTrue)
 	} else {
@@ -401,7 +398,7 @@ func (l *LifecycleManager) removeFinalizerIfNeeded(ctx context.Context, instance
 		return nil
 	}
 
-	if !result.Requeue && result.RequeueAfter == 0 {
+	if result.RequeueAfter == 0 {
 		update := false
 		original := instance.DeepCopyObject().(client.Object)
 		for _, f := range subroutine.Finalizers() {
