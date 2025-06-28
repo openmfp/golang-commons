@@ -6,7 +6,7 @@ require (
 	github.com/99designs/gqlgen v0.17.75
 	github.com/getsentry/sentry-go v0.34.0
 	github.com/go-http-utils/headers v0.0.0-20181008091004-fed159eddc2a
-	github.com/go-jose/go-jose/v4 v4.1.0
+	github.com/go-jose/go-jose/v4 v4.1.1
 	github.com/go-logr/logr v1.4.3
 	github.com/go-logr/zerologr v1.2.3
 	github.com/golang-jwt/jwt/v5 v5.2.2
@@ -107,6 +107,7 @@ require (
 	go.uber.org/mock v0.5.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
+	golang.org/x/crypto v0.39.0 // indirect
 	golang.org/x/net v0.41.0 // indirect
 	golang.org/x/sync v0.15.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
