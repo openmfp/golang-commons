@@ -1,3 +1,8 @@
+> [!WARNING]  
+> This reposiory is being deprecated and moved to https://github.com/platform-mesh/golang-commons
+> Please adjust your dependencies accordingly.
+
+
 # openMFP - golang-commons
 ![Build Status](https://github.com/openmfp/golang-commons/actions/workflows/pipeline.yml/badge.svg)
 [![REUSE status](
